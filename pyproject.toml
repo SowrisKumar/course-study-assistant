@@ -1,0 +1,35 @@
+[project]
+name = "study-assistant"
+version = "0.1.0"
+description = "Course-grounded study assistant (RAG + LangGraph) for Applied Generative AI"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "python-dotenv>=1.0",
+    "python-pptx>=1.0",
+    "pypdf>=5.0",
+    "pandas>=2.2",
+    "pymupdf>=2.1",
+    "rapidocr>=3.10.0",
+    "onnxruntime>=1.32.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ipykernel>=6.29",
+    "nbformat>=5.10",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/study_assistant"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore:builtin type .* has no __module__ attribute:DeprecationWarning",  # PyMuPDF SWIG internals
+]

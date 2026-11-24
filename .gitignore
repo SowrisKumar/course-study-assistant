@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[oc]
+*.egg-info/
+build/
+dist/
+.venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Secrets
+.env
+
+# Course materials and generated data (copyrighted / large; each person points COURSE_DIR at their own copy)
+data/
+*.pptx
+*.pdf
+!docs/**/*.pdf
+
+# Vector indexes / model caches
+.chroma/
+.cache/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
