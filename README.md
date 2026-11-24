@@ -19,14 +19,30 @@ uv run pytest
 
 Everything needed is in the repo. The first run downloads the small embedding model (~90 MB) from Hugging Face. The knowledge base (the course materials' text, already extracted and cleaned) is `data/processed/documents.jsonl`. Walk through it in [`notebooks/01_ingest_explore.ipynb`](notebooks/01_ingest_explore.ipynb).
 
+### Language models
+
+The assistant can use any of four models. Local ones need no key; for cloud ones copy `.env.example` to `.env` and add a key.
+
+| Backend | Setup |
+|---|---|
+| `ollama` (Llama 3.1, local, free) | install [Ollama](https://ollama.com), then `ollama pull llama3.1:8b` |
+| `flan` (flan-t5, local, free) | nothing |
+| `gemini` (free tier) | `GEMINI_API_KEY` from [AI Studio](https://aistudio.google.com) |
+| `openai` (paid) | `OPENAI_API_KEY` |
+
+```bash
+uv run python -m study_assistant.llm --check
+uv run python -m study_assistant.llm -b ollama "What is a GAN?"
+```
+
 ## Status
 
 | Step | What | Status |
 |---|---|---|
 | 1 | Knowledge base: slides / notebooks / PDFs → 507 documents with citation info | ✅ |
 | 2 | Chunking + retrieval: TF-IDF, BM25, dense, hybrid compared ([notebook 02](notebooks/02_retrieval.ipynb)) | ✅ |
-| 3 | LLM backends: OpenAI, Gemini, Ollama (Llama 3.1), flan-t5 | ⏳ next |
-| 4 | LangGraph assistant (answer / simplify / quiz / abstain) + CLI | |
+| 3 | LLM backends: OpenAI, Gemini, Ollama (Llama 3.1), flan-t5 ([notebook 03](notebooks/03_llm_backends.ipynb)) | ✅ |
+| 4 | LangGraph assistant (answer / simplify / quiz / abstain) + CLI | ⏳ next |
 | 5 | Evaluation (50 questions): RAG vs no-RAG | |
 | 6 | Improvements and write-up | |
 
@@ -36,7 +52,7 @@ Design decisions and their reasons: [`docs/design.md`](docs/design.md).
 
 ```
 data/processed/documents.jsonl   the knowledge base
-src/study_assistant/             the code: ingest/ (knowledge base), chunking.py, retrieval.py
+src/study_assistant/             the code: ingest/ (knowledge base), chunking.py, retrieval.py, llm/
 notebooks/                       step-by-step walkthroughs
 eval/                            test questions with verified answers
 tests/                           tests

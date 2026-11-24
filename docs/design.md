@@ -118,3 +118,27 @@ Findings:
 - **We don't tune on these 30 questions**, because we wrote them while building the system. The default retriever is chosen on the Step 5 evaluation.
 
 Limitations: the set is small (one question is 3–10 points), and relevance is judged at lecture level, not slide level.
+
+## Step 3 — LLM backends
+
+One interface, `LLM.generate(prompt, system=None, max_tokens, temperature=0) -> LLMResponse`. The response carries the text, the model, the latency and the token counts. The assistant and the evaluation only call `generate`, so changing backend is one word.
+
+| Backend | Default model | Why it is included |
+|---|---|---|
+| OpenAI | `gpt-5.6-luna` (cheapest text model) | strong cloud model; the class labs used the OpenAI SDK |
+| Gemini | `gemini-3.6-flash` | free tier, so the whole project can run at no cost |
+| Ollama | `llama3.1:8b` | local, private, free; already installed |
+| flan-t5 | `google/flan-t5-base` | the model from the class RAG notebooks; weak baseline |
+
+Model names change often, so defaults can be overridden in `.env` (`OPENAI_MODEL`, ...).
+
+Choices:
+- **temperature = 0** everywhere, so evaluation runs are reproducible (verified: re-running notebook 03 gives identical answers).
+- **Retries with exponential backoff** on rate limits and overloads. Gemini's free tier is limited per minute, so it waits 10 / 20 / 40 / 80 s; the others wait 2 / 4 / 8 / 16 s.
+- **OpenAI reasoning models reject `temperature`**: if the API says so, we drop it and remember that for later calls.
+- **flan-t5 reads at most 512 tokens**: we keep the *end* of long prompts, where the question is.
+- **Missing keys or a stopped Ollama** raise `LLMUnavailable` with a how-to-fix message. `python -m study_assistant.llm --check` lists what works on the current machine.
+
+First observations (notebook 03, one question, so anecdotal; Step 5 measures it properly):
+- Llama 3.1 from memory gives generic answers whose correctness depends on wording. One phrasing said the VAE latent is discrete, which is wrong. With course context it answers in the course's own terms and can be cited.
+- flan-t5 can't answer from memory, and even with context it gives answers of a few words.
