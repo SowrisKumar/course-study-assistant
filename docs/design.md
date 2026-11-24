@@ -74,3 +74,47 @@ Lecture 7 (Normalizing Flows) has slides only (10 slides, no practical), so it i
 - 43 are flagged low-content, which leaves 464 to index.
 - Median length: slides about 400 chars, notebook sections about 1,450 chars.
 - 171 documents are longer than about 1,000 chars, the point at which `all-MiniLM-L6-v2` stops reading (256 word-pieces). This drives Step 2's chunking.
+
+## Step 2 — Chunking and retrieval
+
+### Chunking (`chunking.py`)
+- `all-MiniLM-L6-v2` reads at most 256 tokens and silently drops the rest. 185 of 249 notebook sections were longer than that (up to 4,800 tokens).
+- Documents are split on paragraph and code-block boundaries. Pieces are packed up to 254 tokens, counted with the model's own tokenizer.
+- A paragraph that is too long on its own is split by lines, then by words.
+- Neighbouring chunks share one short paragraph (≤ 60 tokens) as overlap.
+- Every chunk's embedded text starts with a header `title › section`, so a code fragment from the middle of a notebook keeps its topic.
+- Low-content documents are skipped.
+- Result: **1,202 chunks** (971 notebook, 201 slides, 18 activity, 12 guide). None is over the limit, and no text is lost (tested).
+
+### Retrievers (`retrieval.py`)
+| Method | Implementation |
+|---|---|
+| TF-IDF | scikit-learn, unigrams + bigrams, sublinear tf, English stop words |
+| BM25 | `rank-bm25` (Okapi), same tokenisation |
+| Dense | `all-MiniLM-L6-v2`, normalised embeddings, cosine (embeddings cached in `data/cache/`) |
+| Hybrid | Reciprocal Rank Fusion of the BM25 and dense rankings (k = 60, top 50 of each) |
+
+Every hit also carries its dense cosine score, so the assistant has one consistent similarity number.
+
+### Retrieval check (`eval/retrieval_queries.jsonl`, notebook 02)
+We wrote 35 questions and verified each answer key by grepping the knowledge base:
+- 20 *keyword* questions, which contain the topic's term
+- 10 *paraphrased* questions, which describe the idea without the term
+- 5 out-of-scope questions, including the near-miss "mode collapse"
+
+A hit counts if it comes from the gold lecture or file.
+
+| hit@5 | keyword (20) | paraphrase (10) | all (30) | MRR@10 (all) |
+|---|---|---|---|---|
+| TF-IDF | 1.00 | 0.50 | 0.83 | 0.81 |
+| BM25 | 1.00 | 0.80 | 0.93 | 0.86 |
+| Dense | 0.95 | **0.90** | 0.93 | **0.89** |
+| Hybrid | 1.00 | 0.70 | 0.90 | 0.89 |
+
+Findings:
+- **Keyword search only works when the student already knows the course's term.** Dense retrieval handles paraphrases best.
+- **Hybrid (RRF) did not beat dense on paraphrases.** In the LoRA question, BM25 and dense each found a *different part* of the same notebook section, so neither part got enough fused votes. Candidate fix for Step 6: merge votes per section before fusing.
+- **A similarity threshold cannot detect "not covered".** "Capital of France" scores 0.36, while the weakest real question scores 0.37. The near-miss "mode collapse" scores 0.48, above 7 of the 30 real questions. **Decision:** Step 4 adds an LLM relevance check before answering. The threshold is only used to drop obvious off-topic questions.
+- **We don't tune on these 30 questions**, because we wrote them while building the system. The default retriever is chosen on the Step 5 evaluation.
+
+Limitations: the set is small (one question is 3–10 points), and relevance is judged at lecture level, not slide level.

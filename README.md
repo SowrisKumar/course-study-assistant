@@ -17,15 +17,15 @@ uv sync
 uv run pytest
 ```
 
-Everything needed is in the repo. The knowledge base (the course materials' text, already extracted and cleaned) is `data/processed/documents.jsonl`. Walk through it in [`notebooks/01_ingest_explore.ipynb`](notebooks/01_ingest_explore.ipynb).
+Everything needed is in the repo. The first run downloads the small embedding model (~90 MB) from Hugging Face. The knowledge base (the course materials' text, already extracted and cleaned) is `data/processed/documents.jsonl`. Walk through it in [`notebooks/01_ingest_explore.ipynb`](notebooks/01_ingest_explore.ipynb).
 
 ## Status
 
 | Step | What | Status |
 |---|---|---|
 | 1 | Knowledge base: slides / notebooks / PDFs → 507 documents with citation info | ✅ |
-| 2 | Chunking, vector index, retrieval (TF-IDF vs dense vs hybrid) | ⏳ next |
-| 3 | LLM backends: OpenAI, Gemini, Ollama (Llama 3.1), flan-t5 | |
+| 2 | Chunking + retrieval: TF-IDF, BM25, dense, hybrid compared ([notebook 02](notebooks/02_retrieval.ipynb)) | ✅ |
+| 3 | LLM backends: OpenAI, Gemini, Ollama (Llama 3.1), flan-t5 | ⏳ next |
 | 4 | LangGraph assistant (answer / simplify / quiz / abstain) + CLI | |
 | 5 | Evaluation (50 questions): RAG vs no-RAG | |
 | 6 | Improvements and write-up | |
@@ -36,8 +36,9 @@ Design decisions and their reasons: [`docs/design.md`](docs/design.md).
 
 ```
 data/processed/documents.jsonl   the knowledge base
-src/study_assistant/             the code (ingest/ builds the knowledge base)
+src/study_assistant/             the code: ingest/ (knowledge base), chunking.py, retrieval.py
 notebooks/                       step-by-step walkthroughs
+eval/                            test questions with verified answers
 tests/                           tests
 docs/                            proposal, design log
 ```

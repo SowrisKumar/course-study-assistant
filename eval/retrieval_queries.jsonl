@@ -1,0 +1,35 @@
+{"id": "r01", "query": "Why do we need the reparameterization trick when training a VAE?", "gold_lectures": [5], "gold_files": []}
+{"id": "r02", "query": "What does the KL divergence term in the VAE loss do?", "gold_lectures": [5], "gold_files": []}
+{"id": "r03", "query": "How is the GAN discriminator trained and what loss does it use?", "gold_lectures": [6], "gold_files": []}
+{"id": "r04", "query": "How do LSTMs differ from simple RNNs?", "gold_lectures": [6], "gold_files": []}
+{"id": "r05", "query": "How does a normalizing flow compute the probability of a data point?", "gold_lectures": [7], "gold_files": []}
+{"id": "r06", "query": "What is Real NVP?", "gold_lectures": [7], "gold_files": []}
+{"id": "r07", "query": "How does a diffusion model add noise to an image and then learn to remove it?", "gold_lectures": [8], "gold_files": []}
+{"id": "r08", "query": "How do energy-based models generate new samples?", "gold_lectures": [8], "gold_files": []}
+{"id": "r09", "query": "Why does a transformer need positional encodings?", "gold_lectures": [9], "gold_files": []}
+{"id": "r10", "query": "What is the Bellman equation for the value function?", "gold_lectures": [10], "gold_files": []}
+{"id": "r11", "query": "What is the difference between a policy and a value function?", "gold_lectures": [10], "gold_files": []}
+{"id": "r12", "query": "How is a reward model trained for RLHF?", "gold_lectures": [11], "gold_files": []}
+{"id": "r13", "query": "When should I use RAG instead of fine-tuning?", "gold_lectures": [3], "gold_files": []}
+{"id": "r14", "query": "What does a max pooling layer do in a CNN?", "gold_lectures": [4], "gold_files": []}
+{"id": "r15", "query": "How do we estimate next-word probabilities from bigram counts?", "gold_lectures": [2], "gold_files": []}
+{"id": "r16", "query": "What is word2vec?", "gold_lectures": [2], "gold_files": []}
+{"id": "r17", "query": "How does LoRA reduce the number of trainable parameters?", "gold_lectures": [], "gold_files": ["lora_finetuning-1.ipynb"]}
+{"id": "r18", "query": "Can an LLM judge be biased by the order the answers are shown in?", "gold_lectures": [], "gold_files": ["llm_as_judge_solution.ipynb", "llm_evals.ipynb"]}
+{"id": "r19", "query": "How does a ReAct agent decide between thinking and calling a tool?", "gold_lectures": [], "gold_files": ["lab_react_from_scratch_solution.ipynb"]}
+{"id": "r20", "query": "How do we measure translation quality with BLEU?", "gold_lectures": [], "gold_files": ["translation (3).ipynb"]}
+{"id": "o01", "query": "What is the capital of France?", "gold_lectures": [], "gold_files": [], "out_of_scope": true}
+{"id": "o02", "query": "How does a Kalman filter work?", "gold_lectures": [], "gold_files": [], "out_of_scope": true}
+{"id": "o03", "query": "What is mode collapse in GANs and how do I fix it?", "gold_lectures": [], "gold_files": [], "out_of_scope": true}
+{"id": "o04", "query": "How do support vector machines find the maximum margin?", "gold_lectures": [], "gold_files": [], "out_of_scope": true}
+{"id": "o05", "query": "What is the time complexity of quicksort?", "gold_lectures": [], "gold_files": [], "out_of_scope": true}
+{"id": "p01", "query": "Why can't we backpropagate through random sampling in an autoencoder, and how do we get around it?", "gold_lectures": [5], "gold_files": [], "paraphrase": true}
+{"id": "p02", "query": "If attention looks at all the words at once, how does the model know their order?", "gold_lectures": [9], "gold_files": [], "paraphrase": true}
+{"id": "p03", "query": "How do you teach a chatbot to prefer the answers people like?", "gold_lectures": [11], "gold_files": [], "paraphrase": true}
+{"id": "p04", "query": "How can I adapt a big language model cheaply by only training a few small extra matrices?", "gold_lectures": [], "gold_files": ["lora_finetuning-1.ipynb"], "paraphrase": true}
+{"id": "p05", "query": "How does an agent figure out which actions pay off in the long run rather than right away?", "gold_lectures": [10], "gold_files": [], "paraphrase": true}
+{"id": "p06", "query": "How do two networks compete with each other to produce realistic fake images?", "gold_lectures": [6], "gold_files": [], "paraphrase": true}
+{"id": "p07", "query": "How do we turn words into vectors so that similar words end up close together?", "gold_lectures": [2], "gold_files": [], "paraphrase": true}
+{"id": "p08", "query": "How can we generate images by starting from pure static and cleaning it up step by step?", "gold_lectures": [8], "gold_files": [], "paraphrase": true}
+{"id": "p09", "query": "How do you get an LLM to grade other models' answers automatically?", "gold_lectures": [], "gold_files": ["llm_as_judge_solution.ipynb", "llm_evals.ipynb"], "paraphrase": true}
+{"id": "p10", "query": "How does a model shrink an image's resolution while keeping the strongest features?", "gold_lectures": [4], "gold_files": [], "paraphrase": true}
