@@ -13,11 +13,10 @@ dist/
 # Secrets
 .env
 
-# Course materials and generated data (copyrighted / large; each person points COURSE_DIR at their own copy)
-data/
+# Raw course files never go in the repo (only the extracted knowledge base in data/processed/)
 *.pptx
 *.pdf
-!docs/**/*.pdf
+data/cache/
 
 # Vector indexes / model caches
 .chroma/

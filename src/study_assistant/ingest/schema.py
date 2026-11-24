@@ -22,7 +22,7 @@ SourceType = Literal["slides", "notebook", "activity", "guide"]
 class Document:
     doc_id: str  # stable unique id, e.g. "Module 7 - Normalizing Flow Models.pptx::slide-5"
     text: str  # cleaned text content (what gets embedded / shown to the LLM)
-    source_file: str  # file name inside COURSE_DIR
+    source_file: str  # original file name
     source_type: SourceType
     title: str  # human-friendly title of the whole file, e.g. "Module 7 – Normalizing Flow Models"
     section: str  # slide title / notebook heading / page heading

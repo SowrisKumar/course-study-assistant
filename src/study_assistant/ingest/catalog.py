@@ -20,7 +20,7 @@ from pathlib import Path
 
 SUPPORTED_SUFFIXES = {".pptx", ".ipynb", ".pdf"}
 
-# Folders/files inside COURSE_DIR that are never course content.
+# Folders inside the source folder that are never course content.
 SKIP_PARTS = {".ipynb_checkpoints", "__pycache__", "shared"}
 
 

@@ -1,8 +1,8 @@
 """Step 1 – Ingestion: turn the raw course folder into a list of `Document`s.
 
-Usage:
-    uv run python -m study_assistant.ingest            # build data/processed/documents.jsonl
-    uv run python -m study_assistant.ingest --no-ocr   # skip OCR of image-only PDF pages
+The repo already ships the result (data/processed/documents.jsonl). Only rebuild it
+if the course materials change:
+    uv run python -m study_assistant.ingest --source "path/to/course files"
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ import json
 import logging
 from pathlib import Path
 
-from ..config import COURSE_DIR, DOCUMENTS_PATH
+from ..config import DOCUMENTS_PATH
 from .catalog import classify, discover_files
 from .notebook_loader import load_notebook
 from .pdf_loader import load_pdf
@@ -35,13 +35,10 @@ def load_file(path: Path, *, ocr: bool = True) -> list[Document]:
     raise ValueError(f"Unsupported file: {path}")
 
 
-def load_corpus(course_dir: Path = COURSE_DIR, *, ocr: bool = True) -> list[Document]:
-    """Load every supported course file. A file that fails to parse is logged and skipped."""
-    if not course_dir.exists():
-        raise FileNotFoundError(
-            f"COURSE_DIR not found: {course_dir}\n"
-            "Set COURSE_DIR in .env to your copy of the class files."
-        )
+def load_corpus(course_dir: Path, *, ocr: bool = True) -> list[Document]:
+    """Load every supported file under `course_dir`. A file that fails to parse is logged and skipped."""
+    if not course_dir.is_dir():
+        raise FileNotFoundError(f"Folder not found: {course_dir}")
     docs: list[Document] = []
     for path in discover_files(course_dir):
         try:
