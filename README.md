@@ -32,7 +32,19 @@ uv sync                      # creates .venv with all dependencies
 cp .env.example .env         # then edit COURSE_DIR (see below)
 ```
 
-**Course materials are not in this repo** (they are the instructor's files and some are large). Put your copy of the class files folder anywhere and point `COURSE_DIR` in `.env` at it. The default `../Class Files` works if the folder sits next to this repo.
+**Course materials are not in this repo**: they are the instructor's files. Put your copy of the class files folder anywhere and point `COURSE_DIR` in `.env` at it. The default `../Class Files` works if the folder sits next to this repo.
+
+Rules that keep it that way:
+- `.gitignore` blocks `.pptx`/`.pdf` files, `data/` (extracted text, OCR cache, indexes) and `.env`.
+- Notebooks are committed **without outputs**, because outputs print course text. Clear them before committing:
+  `uv run --with nbconvert jupyter nbconvert --clear-output --inplace notebooks/*.ipynb`
+  `tests/test_repo_hygiene.py` fails if you forget.
+
+**macOS + iCloud Desktop/Documents sync:** iCloud marks files inside `.venv` as hidden, and Python then ignores the project's install (`ModuleNotFoundError: No module named 'study_assistant'`). Keep the environment out of iCloud with a `.nosync` folder:
+
+```bash
+rm -rf .venv && uv venv .venv.nosync --python 3.12 && ln -s .venv.nosync .venv && uv sync
+```
 
 ## Usage
 
