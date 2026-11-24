@@ -111,8 +111,27 @@ def test_run_baseline_scores_and_resumes(tmp_path):
     assert not a1.abstained and a1.key_fact_recall == 1.0 and a1.judge_score == 2
     assert o1.abstained
     s = summarize(df).iloc[0]
-    assert s["correct (judge=2)"] == 1.0 and s["not covered → abstained"] == 1.0 and s["false refusals"] == 0.0
+    assert s["correct (judge v1)"] == 1.0 and s["not covered → abstained"] == 1.0 and s["false refusals"] == 0.0
 
     calls = answerer.calls, grader.calls
     run(cfg, answerer, qs, judge_llm=grader, out_dir=tmp_path, log=lambda *_: None)  # resume: nothing redone
     assert (answerer.calls, grader.calls) == calls
+
+
+@pytest.mark.parametrize("text", ["unanswerable", "Unanswerable.", "n/a"])
+def test_flan_bare_refusals_are_refusals(text):
+    assert is_refusal(text)
+
+
+def test_unanswerable_inside_a_sentence_is_not_a_refusal():
+    assert not is_refusal("The question is unanswerable without the noise variance, which the UNet takes as input.")
+
+
+def test_judge_v2_shows_course_excerpts_to_the_judge():
+    from study_assistant.evaluation import judge_v2
+
+    seen = []
+    grader = Scripted(lambda p: seen.append(p) or "SCORE: 2\nREASON: ok")
+    q = {"question": "Q?", "reference": "R."}
+    assert judge_v2(grader, q, "A", excerpts="(Lecture 8 slide 13) the network takes a noise variance") == (2, "ok")
+    assert "Course material excerpts" in seen[0] and "noise variance" in seen[0]

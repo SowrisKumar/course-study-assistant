@@ -54,11 +54,13 @@ def answer_without_course(llm: LLM, question: str) -> dict:
 
 
 _REFUSAL = re.compile(r"(isn't|is not) covered in the course|\bnot covered\b|\bi don'?t know\b", re.I)
+# flan-t5 declines with a bare "unanswerable" (a convention from its SQuAD-v2 style training data)
+_BARE_REFUSAL = re.compile(r"^(unanswerable|no answer|n/?a)\.?$", re.I)
 
 
 def is_refusal(text: str) -> bool:
     t = text.strip().strip('"').strip()
-    return not t or bool(_REFUSAL.search(t[:200]))
+    return not t or bool(_REFUSAL.search(t[:200])) or bool(_BARE_REFUSAL.match(t))
 
 
 # --- the assistant (RAG) ---------------------------------------------------------------------------
@@ -123,15 +125,87 @@ SCORE: <0, 1 or 2>
 REASON: <one short sentence>"""
 
 
+def _parse_judge(reply: str) -> tuple[int | None, str]:
+    m = re.search(r"SCORE\s*:\s*([012])", reply)
+    reason = re.search(r"REASON\s*:\s*(.*)", reply)
+    return (int(m.group(1)) if m else None), (reason.group(1).strip() if reason else reply.strip()[:200])
+
+
 def judge(judge_llm: LLM, q: dict, answer: str) -> tuple[int | None, str]:
-    """Tier 4: LLM-as-judge score 0/1/2 against the reference answer (None if unparseable)."""
+    """Tier 4 (v1): LLM-as-judge score 0/1/2 against the reference answer (None if unparseable)."""
     reply = judge_llm.generate(
         JUDGE_PROMPT.format(question=q["question"], reference=q["reference"], answer=answer),
         system=JUDGE_SYSTEM, max_tokens=80,
     ).text
-    m = re.search(r"SCORE\s*:\s*([012])", reply)
-    reason = re.search(r"REASON\s*:\s*(.*)", reply)
-    return (int(m.group(1)) if m else None), (reason.group(1).strip() if reason else reply.strip()[:200])
+    return _parse_judge(reply)
+
+
+# Judge v2. Why: auditing v1 showed it marked answers down for correct course details that the short
+# reference answer happened to leave out (e.g. the diffusion practical's denoise(noisy_images,
+# noise_rates, signal_rates) inputs, "conditional edges" in the LangGraph labs). v2 also shows the
+# judge the most relevant excerpts of the gold course material, identically for every system.
+JUDGE_PROMPT_V2 = """Grade the assistant's answer to a student's question about the course Applied Generative AI.
+
+Question: {question}
+
+Reference answer (a short summary written from the course materials): {reference}
+
+Course material excerpts (the authoritative source):
+{excerpts}
+
+Assistant's answer: {answer}
+
+Scoring:
+2 = correct: agrees with the reference / course material on the main point(s). It may be worded differently or add detail; details that appear in the course excerpts or are standard, correct facts are fine.
+1 = partially correct: gets part of the main point right but misses or gets wrong an important part.
+0 = incorrect: wrong, contradicts the reference or the course material, or does not answer the question.
+Ignore citation markers like [1].
+
+Reply with exactly two lines:
+SCORE: <0, 1 or 2>
+REASON: <one short sentence>"""
+
+
+class CourseExcerpts:
+    """The k chunks of a question's gold lecture/lab that are most similar to its question + reference."""
+
+    def __init__(self, k: int = 3):
+        from .retrieval import build_retriever
+
+        self.retriever, self.k = build_retriever("dense"), k
+
+    def __call__(self, q: dict) -> str:
+        hits = self.retriever.search(q["question"] + " " + q["reference"], k=len(self.retriever.chunks))
+        gold = [h for h in hits if h.chunk.lecture in q["gold_lectures"] or h.chunk.source_file in q["gold_files"]]
+        return "\n\n".join(f"({h.chunk.citation})\n{h.chunk.text}" for h in gold[: self.k])
+
+
+def judge_v2(judge_llm: LLM, q: dict, answer: str, excerpts: str) -> tuple[int | None, str]:
+    """Tier 4 (v2): like `judge`, but the judge also sees excerpts of the gold course material."""
+    reply = judge_llm.generate(
+        JUDGE_PROMPT_V2.format(question=q["question"], reference=q["reference"], excerpts=excerpts, answer=answer),
+        system=JUDGE_SYSTEM, max_tokens=80,
+    ).text
+    return _parse_judge(reply)
+
+
+def rejudge_v2(judge_llm: LLM, out_dir: Path = RESULTS_DIR, log=print) -> None:
+    """Add judge-v2 scores to every saved run (resumable; v1 scores are kept for comparison)."""
+    questions = {q["id"]: q for q in load_questions()}
+    excerpts = CourseExcerpts()
+    cache: dict[str, str] = {}
+    for path in sorted(out_dir.glob("*.jsonl")):
+        recs = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        for rec in recs:
+            q = questions[rec["id"]]
+            if q["type"] == "out_of_scope" or rec["abstained"] or rec.get("judge2_model") == judge_llm.model:
+                continue
+            if rec["id"] not in cache:
+                cache[rec["id"]] = excerpts(q)
+            rec["judge2_score"], rec["judge2_reason"] = judge_v2(judge_llm, q, rec["answer"], cache[rec["id"]])
+            rec["judge2_model"] = judge_llm.model
+            path.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in recs), encoding="utf-8")
+        log(f"judge v2 done: {path.name}")
 
 
 # --- running ---------------------------------------------------------------------------------------
@@ -201,14 +275,21 @@ def summarize(df: pd.DataFrame) -> pd.DataFrame:
         oos = g[g.type == "out_of_scope"]
         answered = ans[~ans.abstained]
         js = ans["judge_score"] if "judge_score" in ans else pd.Series(dtype=float)
+        j2 = ans["judge2_score"] if "judge2_score" in ans else pd.Series(dtype=float)
+        kf = ans["key_fact_recall"] if "key_fact_recall" in ans else pd.Series(dtype=float)
         row = {
             "answerable": len(ans),
-            "correct (judge=2)": (js == 2).sum() / len(ans) if js.notna().any() else None,
-            "correct or partial": (js >= 1).sum() / len(ans) if js.notna().any() else None,
+            # main metric: judge v2 says correct AND at least half the key facts are present.
+            # The judge alone was too lenient on one-word answers; key facts alone can't see meaning.
+            "correct (main)": ((j2 == 2) & (kf >= 0.5)).sum() / len(ans) if j2.notna().any() else None,
+            "correct (judge v2)": (j2 == 2).sum() / len(ans) if j2.notna().any() else None,
+            "correct or partial (v2)": (j2 >= 1).sum() / len(ans) if j2.notna().any() else None,
+            "correct (judge v1)": (js == 2).sum() / len(ans) if js.notna().any() else None,
             "key-fact recall": ans["key_fact_recall"].fillna(0).mean() if "key_fact_recall" in ans else None,
             "false refusals": ans.abstained.mean(),
             "not covered → abstained": oos.abstained.mean() if len(oos) else None,
             "near-miss → abstained": oos[oos.question.isin(_NEAR_MISS)].abstained.mean() if len(oos) else None,
+            "answers with no citation": answered["uncited"].mean() if "uncited" in answered else None,
             "cites right lecture": answered["cites_gold"].mean() if "cites_gold" in answered and answered["cites_gold"].notna().any() else None,
             "citation precision": answered["citation_precision"].mean() if "citation_precision" in answered and answered["citation_precision"].notna().any() else None,
             "sec / question": g.latency_s.mean(),
@@ -237,9 +318,12 @@ def main() -> None:
     p.add_argument("--limit", type=int, help="only the first N questions (smoke test)")
     p.add_argument("--out", type=Path, default=RESULTS_DIR)
     p.add_argument("--report", action="store_true", help="only print the summary of saved runs")
+    p.add_argument("--rejudge", action="store_true", help="add judge-v2 scores (with course excerpts) to saved runs")
     args = p.parse_args()
 
-    if not args.report:
+    if args.rejudge:
+        rejudge_v2(get_llm(args.judge), args.out)
+    elif not args.report:
         from .assistant import DEFAULT_RETRIEVER, StudyAssistant
         from .retrieval import build_retriever
 

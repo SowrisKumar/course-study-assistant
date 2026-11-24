@@ -197,3 +197,44 @@ How the set was built and checked:
 - The RAG assistant answered the near-miss "vanishing gradient" question with a `[1]` citation to a Lecture 4 passage that doesn't mention it. Both abstention layers missed it. The full run measures how often this happens.
 - The no-RAG chatbot refused the MIT/Stanford study question, which only the course material can answer.
 - The judge (Llama 3.1 8B) gave full marks to a no-RAG answer that missed the course's main point (convergence), whose key-fact recall was 0.5. Judges can be lenient, which is why key-fact recall is reported alongside. If the judge is the same model as the answerer, that also biases the result; a different judge model is preferable.
+
+## Step 5 — Results (notebook 05; raw answers in `eval/results/`)
+
+Five configurations were run on all 50 questions: Llama 3.1 8B with the course (hybrid and dense retrieval) and without it, and flan-t5-base with and without the course. The grader is Llama 3.1 8B (chosen by the team).
+
+| | Llama + course (hybrid) | Llama + course (dense) | Llama, no course | flan-t5 + course | flan-t5, no course |
+|---|---|---|---|---|---|
+| Correct (main metric) | **97%** | 82% | 55% | 32% | 0% |
+| Key-fact recall | 96% | 92% | 72% | 35% | 2% |
+| False refusals | 0% | 5% | 3% | 5% | 50% |
+| Not covered → "not covered" | **92%** | 83% | 33% | 67% | 58% |
+| Near-miss → "not covered" | **90%** | 80% | 20% | 60% | 70% |
+| Cites the right lecture | 97% | 100% | – | (2 cited answers) | – |
+| Seconds / question (M2, local) | 14 | 13 | 7 | 1 | 1 |
+
+### The grader had to be fixed: a finding in itself
+- **Judge v1** (reference answer only) marked down correct course details that the short reference omitted. Six of these were checked and every one is in the course text: the diffusion `denoise(noisy_images, noise_rates, signal_rates)` inputs, the "lower-triangular" causal mask, "conditional edges", and three others. This biased the comparison against RAG.
+- **Judge v2** adds the 3 most relevant excerpts of the gold lecture to the grader's prompt, identically for every system. It fixed those cases and still catches the two known-wrong answers, **but it is too lenient on one-word answers** (flan-t5's "squeeze" got full marks).
+- **Main metric = v2 says correct AND ≥ half the key facts are present.** v1 and v2 are still reported.
+- **The grader is also inconsistent:** the same wrong clause scored 1 in one run and 2 in another. With an 8B grader, differences of 1–3 questions are noise, so the dense-vs-hybrid comparison was also read by hand.
+- **Bug found:** flan-t5 declines with a bare "unanswerable", a convention from its training data, which the refusal detector missed. It was fixed, and the one affected record was re-labelled without re-running the model.
+
+### Decisions
+- **Default retriever changed to hybrid.** Reading the 8 questions where dense and hybrid differ by hand: hybrid wins 4 and loses 1; the other 3 were grader noise. It also refused one more near-miss. *Caveat:* this choice was made on the evaluation set, so hybrid's numbers are slightly optimistic.
+- **Retrieval isn't the bottleneck on this set.** Every method has hit@3 = 100%. The paraphrased evaluation questions were easier than the development ones.
+
+### Main failure for Step 6: confident answers with unsupporting citations
+"Vanishing gradients" (both retrievers) and "Stable Diffusion" (dense): the relevance check accepted loosely related passages, and Llama answered from its own knowledge while citing those passages. Citations make this look trustworthy. Candidate fixes:
+- a stricter relevance prompt or a stronger grader model
+- a per-sentence support check after generation
+
+Other errors:
+- one subtly wrong definition (q02)
+- generic answers missing the course's specific point (q19, q20)
+- over-cautious refusals with the right material in hand (dense: q17, q30)
+
+### Limitations
+- 38 + 12 questions (one question is 2.6 / 8 points)
+- the grader is the same 8B model as the answerer
+- hybrid was selected on this set
+- the questions were not independently reviewed

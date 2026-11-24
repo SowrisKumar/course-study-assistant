@@ -41,7 +41,10 @@ from .retrieval import Hit, Retriever, build_retriever
 
 Mode = Literal["answer", "simplify", "quiz", "chitchat"]
 
-DEFAULT_RETRIEVER = "dense"  # best on paraphrased questions in Step 2; final choice made in Step 5
+# Step 5 evaluation (end to end, Llama 3.1): hybrid won 4 questions and lost 1 vs dense after removing
+# judge noise, and abstained on one more near-miss. Chosen on the evaluation set, so its scores there
+# are slightly optimistic (see docs/design.md, Step 5).
+DEFAULT_RETRIEVER = "hybrid"
 OFF_TOPIC_FLOOR = 0.25  # below this best cosine score the question is clearly unrelated (Step 2: in-scope min 0.37)
 
 

@@ -6,6 +6,17 @@ Built with the tools from class: RAG (embeddings + vector search) and a LangGrap
 
 Team: Sowris Kumar Sripathy, Alfonso Garcia. Original proposal: [`docs/proposal.png`](docs/proposal.png).
 
+## Results (Step 5)
+
+50 new questions: 38 the course covers and 12 it doesn't, 10 of which deliberately *sound* like course topics. Local Llama 3.1 8B, graded by Llama 3.1 8B; details and caveats are in [notebook 05](notebooks/05_evaluation.ipynb).
+
+| | Assistant (Llama + course) | Same Llama, no course |
+|---|---|---|
+| Answers covered questions correctly | **97%** | 55% |
+| Cites the right lecture | **97%** | – |
+| Says "not covered" when it isn't | **92%** | 33% |
+| …for topics that sound like the course (PPO, DPO, FID…) | **90%** | 20% |
+
 ## Try it
 
 ```bash
@@ -76,8 +87,8 @@ uv run python -m study_assistant.llm -b ollama "What is a GAN?"
 | 2 | Chunking + retrieval: TF-IDF, BM25, dense, hybrid compared ([notebook 02](notebooks/02_retrieval.ipynb)) | ✅ |
 | 3 | LLM backends: OpenAI, Gemini, Ollama (Llama 3.1), flan-t5 ([notebook 03](notebooks/03_llm_backends.ipynb)) | ✅ |
 | 4 | LangGraph assistant: answer / simplify / quiz / abstain, with citations ([notebook 04](notebooks/04_assistant_demo.ipynb)) | ✅ |
-| 5 | Evaluation: 50 questions ([review them](eval/QUESTIONS.md)) and harness ready; full run next | ⏳ |
-| 6 | Improvements and write-up | |
+| 5 | Evaluation: 50 questions, RAG vs no-RAG ([notebook 05](notebooks/05_evaluation.ipynb), [questions](eval/QUESTIONS.md)) | ✅ |
+| 6 | Improvements and write-up | ⏳ next |
 
 Design decisions and their reasons: [`docs/design.md`](docs/design.md).
 
