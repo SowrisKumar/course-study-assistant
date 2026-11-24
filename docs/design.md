@@ -164,3 +164,36 @@ First observations with Llama 3.1 8B (7 examples in notebook 04; measured proper
 - In-scope questions get answers citing the right slide. Quiz and simplify modes work and cite their sources.
 - **The 8B grader is unreliable on out-of-scope questions.** For both "mode collapse" and "capital of France" it marked one irrelevant passage as relevant. The answering prompt still abstained, so the second layer is needed.
 - **A false "not covered" on a paraphrased RLHF question.** Retrieval never surfaced Lecture 11 (it ranked 6th in Step 2), so the assistant correctly refused to answer from the wrong material. Retrieval recall is the bottleneck to watch.
+
+## Step 5 — Evaluation (set-up)
+
+### Question set (`eval/questions.jsonl`, readable copy in `eval/QUESTIONS.md`)
+50 new questions; none are reused from the 35 development queries (this is tested).
+
+| Type | n | Purpose |
+|---|---|---|
+| Answerable, uses the course's term | 30 | Spread over Lectures 1–11 and the add-on labs |
+| Answerable, paraphrased | 8 | The student doesn't know the term (Step 2 showed this is where retrieval struggles) |
+| Not covered, near-miss | 9 | Sounds like course content but isn't in it: vanishing gradients, PPO, VQ-VAE, Stable Diffusion, MoE, FID, L1/L2, DPO, GRPO |
+| Not covered, trap | 1 | Everest's boiling point: "Everest" appears in toy demo data, but the answer doesn't |
+| Not covered, off-topic | 2 | Sourdough, Wimbledon |
+
+How the set was built and checked:
+- Every reference answer was written from the cited slide or notebook text, not from memory.
+- Each answerable question has *key facts* (lists of acceptable phrasings). A test checks that every key fact appears in the gold lecture's text.
+- A test also checks that each not-covered topic appears nowhere in the course.
+- The checks found two mistakes in the first draft: "Mount Everest" and "Pride and Prejudice" both appear in toy knowledge bases inside class notebooks. Everest was kept as a deliberate trap; Pride and Prejudice was replaced.
+- One question was dropped because its answer lives in a formula *image* (normalizing-flow loss), so the text can't support it.
+
+### Metrics (`evaluation.py`, tiers from the class `llm_evals` notebook)
+- **Abstention:** the share of not-covered questions answered "not covered" (reported separately for near-misses), and the share of answerable questions wrongly refused (false refusals).
+- **Correctness, measured over all answerable questions** (a refusal counts as not correct):
+  - Tier 1: key-fact recall (deterministic).
+  - Tier 4: LLM-as-judge, 0/1/2 against the reference answer.
+- **Citations (RAG only):** whether the answer cites the right lecture or lab, and what share of its cited sources are right.
+- **Baseline ("no-RAG"):** the same LLM with a system prompt saying it's the course's study assistant. It is allowed to say "not covered", but it can't see the materials.
+
+### Smoke test (5 questions; not results)
+- The RAG assistant answered the near-miss "vanishing gradient" question with a `[1]` citation to a Lecture 4 passage that doesn't mention it. Both abstention layers missed it. The full run measures how often this happens.
+- The no-RAG chatbot refused the MIT/Stanford study question, which only the course material can answer.
+- The judge (Llama 3.1 8B) gave full marks to a no-RAG answer that missed the course's main point (convergence), whose key-fact recall was 0.5. Judges can be lenient, which is why key-fact recall is reported alongside. If the judge is the same model as the answerer, that also biases the result; a different judge model is preferable.

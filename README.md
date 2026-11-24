@@ -76,7 +76,7 @@ uv run python -m study_assistant.llm -b ollama "What is a GAN?"
 | 2 | Chunking + retrieval: TF-IDF, BM25, dense, hybrid compared ([notebook 02](notebooks/02_retrieval.ipynb)) | ✅ |
 | 3 | LLM backends: OpenAI, Gemini, Ollama (Llama 3.1), flan-t5 ([notebook 03](notebooks/03_llm_backends.ipynb)) | ✅ |
 | 4 | LangGraph assistant: answer / simplify / quiz / abstain, with citations ([notebook 04](notebooks/04_assistant_demo.ipynb)) | ✅ |
-| 5 | Evaluation (50 questions): RAG vs no-RAG | ⏳ next |
+| 5 | Evaluation: 50 questions ([review them](eval/QUESTIONS.md)) and harness ready; full run next | ⏳ |
 | 6 | Improvements and write-up | |
 
 Design decisions and their reasons: [`docs/design.md`](docs/design.md).
@@ -88,7 +88,7 @@ data/processed/documents.jsonl   the knowledge base
 src/study_assistant/             the code: ingest/ (knowledge base), chunking.py, retrieval.py, llm/,
                                  assistant.py (LangGraph workflow), prompts.py, chat.py
 notebooks/                       step-by-step walkthroughs
-eval/                            test questions with verified answers
+eval/                            questions with verified answers; evaluation results
 tests/                           tests
 docs/                            proposal, design log
 ```
