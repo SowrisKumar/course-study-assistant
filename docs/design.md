@@ -142,3 +142,25 @@ Choices:
 First observations (notebook 03, one question, so anecdotal; Step 5 measures it properly):
 - Llama 3.1 from memory gives generic answers whose correctness depends on wording. One phrasing said the VAE latent is discrete, which is wrong. With course context it answers in the course's own terms and can be cited.
 - flan-t5 can't answer from memory, and even with context it gives answers of a few words.
+
+## Step 4 — The assistant (LangGraph)
+
+`assistant.py` is a `StateGraph` (class pattern: `campus_help_desk_rag.ipynb`) with nodes **route → retrieve → check → generate → cite**, plus **abstain** and **chitchat**. Prompts are in `prompts.py`.
+
+| Node | What it does | Why |
+|---|---|---|
+| route | Rule-based mode detection: quiz / simplify / chitchat / answer. Removes the request words ("quiz me on") from the search query. | Cheap and predictable, like the class router. Only explicit phrases trigger simplify, so "simple RNNs" stays a normal question. |
+| retrieve | Top 8 chunks (dense retriever by default), grouped into at most 5 passages, one per document | Each source is cited once, and the model sees chunks of the same document together |
+| check | Off-topic floor (best cosine < 0.25 means abstain with no LLM call), then **one** LLM call grading all passages (`RELEVANT: 1, 3`) | Step 2 showed thresholds can't separate in-scope from out-of-scope. One call instead of one per passage keeps it fast. If the reply can't be parsed, all passages are kept (fail open), because the next layer can still abstain. |
+| generate | Mode-specific system prompt. Only the passages, cite `[n]`, reply exactly with the NOT_COVERED sentence if they're insufficient | Grounding plus a second abstention layer |
+| cite | Drops citations to passages that weren't shown, renumbers `[n]` in order of use, maps them to "Lecture N · title, slide/section". A NOT_COVERED reply becomes an abstention; an answer with no citations is flagged. | Citations are checked, not trusted |
+
+Other choices:
+- **Citation labels show the *lecture*** ("Lecture 5 · Module 4: Practical – VAE …"), because the notebooks' own titles have different module numbers.
+- **flan-t5 uses a similarity threshold (0.45) instead of the LLM check**, since it can't follow the grader format.
+- **Ollama context window raised to 8,192 tokens.** Its default is small and silently cuts long prompts.
+
+First observations with Llama 3.1 8B (7 examples in notebook 04; measured properly in Step 5):
+- In-scope questions get answers citing the right slide. Quiz and simplify modes work and cite their sources.
+- **The 8B grader is unreliable on out-of-scope questions.** For both "mode collapse" and "capital of France" it marked one irrelevant passage as relevant. The answering prompt still abstained, so the second layer is needed.
+- **A false "not covered" on a paraphrased RLHF question.** Retrieval never surfaced Lecture 11 (it ranked 6th in Step 2), so the assistant correctly refused to answer from the wrong material. Retrieval recall is the bottleneck to watch.

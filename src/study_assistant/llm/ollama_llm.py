@@ -13,6 +13,7 @@ import httpx
 from .base import LLM, LLMResponse, LLMUnavailable, RetryableError
 
 DEFAULT_MODEL = "llama3.1:8b"
+NUM_CTX = 8192  # tokens of context the model may see (prompt + answer)
 
 
 class OllamaLLM(LLM):
@@ -39,7 +40,9 @@ class OllamaLLM(LLM):
             "model": self.model,
             "messages": messages,
             "stream": False,
-            "options": {"temperature": temperature, "num_predict": max_tokens, "seed": 0},
+            # num_ctx: Ollama's default context window is small and silently truncates long
+            # prompts; 6 course passages + instructions need more room.
+            "options": {"temperature": temperature, "num_predict": max_tokens, "seed": 0, "num_ctx": NUM_CTX},
         }
         try:
             r = httpx.post(f"{self.host}/api/chat", json=payload, timeout=300)

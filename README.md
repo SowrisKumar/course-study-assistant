@@ -6,6 +6,39 @@ Built with the tools from class: RAG (embeddings + vector search) and a LangGrap
 
 Team: Sowris Kumar Sripathy, Alfonso Garcia. Original proposal: [`docs/proposal.png`](docs/proposal.png).
 
+## Try it
+
+```bash
+uv run python -m study_assistant.chat            # chat in the terminal (uses local Llama 3.1 via Ollama)
+uv run python -m study_assistant.chat -v         # also show each step the assistant takes
+uv run python -m study_assistant.chat -b gemini "Quiz me on GANs"
+```
+
+```
+you> Why do transformers need positional encodings?
+Transformers need positional encodings because the self-attention mechanism ... is invariant to the order of the input tokens. ... [1]
+
+Sources:
+[1] Lecture 9 · Module 9 – Transformer Architecture and Advanced GAN, slide 6
+
+you> What is mode collapse in GANs?
+This isn't covered in the course materials.
+```
+
+How it works:
+
+```mermaid
+flowchart TD
+    Q[question] --> R{route}
+    R -->|hi / thanks| C[chitchat]
+    R -->|answer / simplify / quiz| RET[retrieve<br/>top chunks from the course]
+    RET --> CHK{relevant?<br/>similarity floor + LLM check}
+    CHK -->|no| ABS["abstain:<br/>'This isn't covered in the course materials.'"]
+    CHK -->|yes| GEN[generate<br/>answer / simple explanation / quiz<br/>citing passages as n]
+    GEN --> CITE[cite<br/>validate citations, map to lecture + slide]
+    CITE -->|model says not covered| ABS
+```
+
 ## Run it
 
 Requires [uv](https://docs.astral.sh/uv/).
@@ -42,8 +75,8 @@ uv run python -m study_assistant.llm -b ollama "What is a GAN?"
 | 1 | Knowledge base: slides / notebooks / PDFs → 507 documents with citation info | ✅ |
 | 2 | Chunking + retrieval: TF-IDF, BM25, dense, hybrid compared ([notebook 02](notebooks/02_retrieval.ipynb)) | ✅ |
 | 3 | LLM backends: OpenAI, Gemini, Ollama (Llama 3.1), flan-t5 ([notebook 03](notebooks/03_llm_backends.ipynb)) | ✅ |
-| 4 | LangGraph assistant (answer / simplify / quiz / abstain) + CLI | ⏳ next |
-| 5 | Evaluation (50 questions): RAG vs no-RAG | |
+| 4 | LangGraph assistant: answer / simplify / quiz / abstain, with citations ([notebook 04](notebooks/04_assistant_demo.ipynb)) | ✅ |
+| 5 | Evaluation (50 questions): RAG vs no-RAG | ⏳ next |
 | 6 | Improvements and write-up | |
 
 Design decisions and their reasons: [`docs/design.md`](docs/design.md).
@@ -52,7 +85,8 @@ Design decisions and their reasons: [`docs/design.md`](docs/design.md).
 
 ```
 data/processed/documents.jsonl   the knowledge base
-src/study_assistant/             the code: ingest/ (knowledge base), chunking.py, retrieval.py, llm/
+src/study_assistant/             the code: ingest/ (knowledge base), chunking.py, retrieval.py, llm/,
+                                 assistant.py (LangGraph workflow), prompts.py, chat.py
 notebooks/                       step-by-step walkthroughs
 eval/                            test questions with verified answers
 tests/                           tests
