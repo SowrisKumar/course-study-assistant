@@ -35,6 +35,7 @@ import pandas as pd
 from . import prompts
 from .config import PROJECT_ROOT
 from .llm import LLM, get_llm
+from .refusal import is_refusal
 
 QUESTIONS_PATH = PROJECT_ROOT / "eval" / "questions.jsonl"
 RESULTS_DIR = PROJECT_ROOT / "eval" / "results"
@@ -51,16 +52,6 @@ def answer_without_course(llm: LLM, question: str) -> dict:
     abstained = is_refusal(r.text)
     return {"answer": prompts.NOT_COVERED if abstained else r.text, "abstained": abstained,
             "sources": [], "latency_s": r.latency_s}
-
-
-_REFUSAL = re.compile(r"(isn't|is not) covered in the course|\bnot covered\b|\bi don'?t know\b", re.I)
-# flan-t5 declines with a bare "unanswerable" (a convention from its SQuAD-v2 style training data)
-_BARE_REFUSAL = re.compile(r"^(unanswerable|no answer|n/?a)\.?$", re.I)
-
-
-def is_refusal(text: str) -> bool:
-    t = text.strip().strip('"').strip()
-    return not t or bool(_REFUSAL.search(t[:200])) or bool(_BARE_REFUSAL.match(t))
 
 
 # --- the assistant (RAG) ---------------------------------------------------------------------------
@@ -88,8 +79,13 @@ def key_fact_recall(answer: str, key_facts: list[list[str]]) -> float | None:
     """Tier 1: share of key facts (each a list of acceptable phrasings) present in the answer."""
     if not key_facts:
         return None
-    a = answer.lower()
-    return sum(any(alt.lower() in a for alt in fact) for fact in key_facts) / len(key_facts)
+    return sum(any(fact_present(alt, answer) for alt in fact) for fact in key_facts) / len(key_facts)
+
+
+def fact_present(phrase: str, text: str) -> bool:
+    """Phrase found at the START of a word (stems like "normaliz" still match "normalization"),
+    so "wer" no longer matches inside "answer" and "linear" not inside "nonlinear"."""
+    return re.search(r"(?<![a-z0-9])" + re.escape(phrase.lower()), text.lower()) is not None
 
 
 def _source_file(doc_id: str) -> str:

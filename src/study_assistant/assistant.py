@@ -37,6 +37,7 @@ from langgraph.graph import END, START, StateGraph
 
 from . import prompts
 from .llm import LLM
+from .refusal import is_refusal
 from .retrieval import Hit, Retriever, build_retriever
 
 Mode = Literal["answer", "simplify", "quiz", "chitchat"]
@@ -167,14 +168,23 @@ def parse_relevant(reply: str, n: int) -> list[int] | None:
     return nums if nums else None
 
 
-_CITE = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")
+# A citation is [n] or [n, m] NOT directly after an identifier or ")" (so `x[1]`, `f(x)[0]` are code),
+# and never inside inline code or a fenced code block. "]" is allowed before it: chained citations [1][2].
+_CITE = re.compile(r"(?<![\w)])\[(\d+(?:\s*,\s*\d+)*)\]")
+_CODE = re.compile(r"```.*?```|`[^`\n]*`", re.DOTALL)
 
 
-def is_not_covered(answer: str) -> bool:
-    """The model declined. Checked anywhere in the reply: on the development set Llama sometimes wrote a
-    general-knowledge hedge ("not explicitly mentioned... typically...") and only then the not-covered sentence."""
-    a = " ".join(answer.lower().split()).replace("’", "'")
-    return not a.strip(' "') or prompts.NOT_COVERED.lower().rstrip(".") in a
+def sub_citations(text: str, fn) -> str:
+    """Apply `fn(match)` to every citation marker outside code spans."""
+    out, pos = [], 0
+    for m in _CODE.finditer(text):
+        out += [_CITE.sub(fn, text[pos:m.start()]), m.group(0)]
+        pos = m.end()
+    out.append(_CITE.sub(fn, text[pos:]))
+    return "".join(out)
+
+
+is_not_covered = is_refusal  # shared with the evaluation (refusal.py)
 
 
 # --- the assistant ----------------------------------------------------------------------------
@@ -276,10 +286,10 @@ class StudyAssistant:
             used.extend(n for n in good if n not in used)
             return "".join(f"[{n}]" for n in good)  # drop citations to passages that don't exist
 
-        answer = _CITE.sub(fix, answer)
+        answer = sub_citations(answer, fix)
         # renumber cited passages in order of first use: [1], [2], ... matching the Sources list
         remap = {old: new for new, old in enumerate(used, start=1)}
-        answer = re.sub(r"\[(\d+)\]", lambda m: f"[{remap[int(m.group(1))]}]", answer)
+        answer = sub_citations(answer, lambda m: f"[{remap[int(m.group(1))]}]")
         sources = [Passage(remap[p.number], p.doc_id, p.citation, p.lecture, p.track, p.text, p.score)
                    for p in sorted(shown, key=lambda p: remap.get(p.number, 99)) if p.number in remap]
         return {"answer": answer.strip(), "sources": sources, "abstained": False, "uncited": not sources,
@@ -297,7 +307,7 @@ class StudyAssistant:
         # correct answer drew on slide 5 but cited only slide 6 and was wrongly rejected. Citation numbers
         # are removed from both sides so the checker judges content, not numbering.
         passages = "\n\n".join(f"({p.label})\n{p.text}" for p in state["relevant"])
-        answer = re.sub(r"\s*\[\d+\]", "", state["answer"])
+        answer = re.sub(r"[ \t]+([.,;:!?])", r"\1", sub_citations(state["answer"], lambda m: "")).strip()
         reply = self.grader_llm.generate(
             prompts.VERIFY_PROMPT.format(question=state["question"], passages=passages, answer=answer),
             system=prompts.VERIFY_SYSTEM, max_tokens=10,

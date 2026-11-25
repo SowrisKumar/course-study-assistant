@@ -200,3 +200,28 @@ def test_verify_skipped_for_quiz_and_when_disabled(retriever):
     llm2 = VerifyingLLM("SUPPORTED: no", answer_reply="Fact [1].")
     assert not make(retriever, llm2, verify=False).ask("What does max pooling do?").abstained
     assert "verify" not in [k for k, _ in llm.calls + llm2.calls]
+
+
+# --- audit fixes ------------------------------------------------------------------------------------
+
+
+def test_code_indexing_is_not_treated_as_a_citation(retriever):
+    llm = ScriptedLLM("RELEVANT: 1, 2", "Take `outputs[0]` and x[1] from the batch [2]. See:\n```python\nz = h[3]\n```")
+    r = make(retriever, llm).ask("What does max pooling do?")
+    assert "`outputs[0]`" in r.answer and "x[1]" in r.answer and "z = h[3]" in r.answer  # code untouched, no crash
+    assert r.answer.startswith("Take `outputs[0]` and x[1] from the batch [1].")  # the real citation renumbered
+    assert len(r.sources) == 1
+
+
+@pytest.mark.parametrize("text,expected", [
+    (prompts.NOT_COVERED, True),
+    ("unanswerable", True),
+    ("I don't know.", True),
+    ("Not explicitly mentioned. However, typically ...\n\nThis isn't covered in the course materials.", True),  # uncited hedge
+    ("Pooling keeps the largest value [1]. The rest isn't covered in the course materials.", False),  # cited + disclaimer
+    ("Pooling keeps the largest value [1].", False),
+])
+def test_shared_refusal_detector(text, expected):
+    from study_assistant.refusal import is_refusal
+
+    assert is_refusal(text) is expected

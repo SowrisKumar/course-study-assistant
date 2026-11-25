@@ -7,7 +7,7 @@ import pytest
 
 from study_assistant import prompts
 from study_assistant.evaluation import (
-    RunConfig, citation_scores, is_refusal, judge, key_fact_recall, load_questions, load_results, run, summarize,
+    RunConfig, citation_scores, fact_present, is_refusal, judge, key_fact_recall, load_questions, load_results, run, summarize,
 )
 from study_assistant.ingest import load_documents
 from study_assistant.llm import LLM, LLMResponse
@@ -40,7 +40,8 @@ def test_question_set_shape():
 
 
 def test_questions_not_reused_from_development():
-    dev = {json.loads(l)["query"].lower() for l in open("eval/retrieval_queries.jsonl")}
+    from study_assistant.config import PROJECT_ROOT
+    dev = {json.loads(l)["query"].lower() for l in open(PROJECT_ROOT / "eval" / "retrieval_queries.jsonl")}
     assert not dev & {q["question"].lower() for q in load_questions()}
 
 
@@ -51,7 +52,7 @@ def test_key_facts_appear_in_gold_material():
             continue
         text = " ".join(d.text.lower() for d in docs if d.lecture in q["gold_lectures"] or d.source_file in q["gold_files"])
         for fact in q["key_facts"]:
-            assert any(alt.lower() in text for alt in fact), (q["id"], fact)
+            assert any(fact_present(alt, text) for alt in fact), (q["id"], fact)
 
 
 @pytest.mark.parametrize("term", ["vanishing", "ppo", "vq-vae", "stable diffusion", "mixture of experts", "fid",
@@ -135,3 +136,16 @@ def test_judge_v2_shows_course_excerpts_to_the_judge():
     q = {"question": "Q?", "reference": "R."}
     assert judge_v2(grader, q, "A", excerpts="(Lecture 8 slide 13) the network takes a noise variance") == (2, "ok")
     assert "Course material excerpts" in seen[0] and "noise variance" in seen[0]
+
+
+def test_key_facts_match_at_word_start():
+    assert key_fact_recall("The answer is low.", [["wer"]]) == 0.0           # not inside "answer"
+    assert key_fact_recall("It is nonlinear.", [["linear"]]) == 0.0           # not inside "nonlinear"
+    assert key_fact_recall("Uses normalization.", [["normaliz"]]) == 1.0      # stems still match
+    assert key_fact_recall("Measured with WER.", [["wer"]]) == 1.0
+
+
+def test_key_facts_do_not_just_repeat_the_question():
+    for q in load_questions():
+        for fact in q["key_facts"]:
+            assert not any(fact_present(a, q["question"]) for a in fact), (q["id"], fact)
