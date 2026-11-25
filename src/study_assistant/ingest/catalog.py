@@ -56,6 +56,9 @@ PDF_OVERRIDES: dict[str, FileInfo] = {
     "module10_rl_slides.pdf": FileInfo(
         "slides", 10, "lecture", "Module 10 – Basics of Reinforcement Learning (extended deck)"
     ),
+    "module11_rl_genai_slides.pdf": FileInfo(
+        "slides", 11, "lecture", "Module 11 – Application of RL to Generative AI (extended deck)"
+    ),
     "Module 1 Custom Setup Guide-3.pdf": FileInfo(
         "guide", 1, "lecture", "Module 1 – Custom Setup Guide"
     ),

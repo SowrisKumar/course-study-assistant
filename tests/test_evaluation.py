@@ -55,7 +55,7 @@ def test_key_facts_appear_in_gold_material():
             assert any(fact_present(alt, text) for alt in fact), (q["id"], fact)
 
 
-@pytest.mark.parametrize("term", ["vanishing", "ppo", "vq-vae", "stable diffusion", "mixture of experts", "fid",
+@pytest.mark.parametrize("term", ["label smoothing", "clipped", "vq-vae", "stable diffusion", "mixture of experts", "fid",
                                   "l2 regular", "dpo", "grpo", "sourdough", "boiling point", "wimbledon"])
 def test_not_covered_topics_are_absent(term):
     text = " ".join(d.text.lower() for d in load_documents())

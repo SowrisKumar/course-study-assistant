@@ -1,21 +1,24 @@
 # Evaluation questions (for review)
 
-Generated from [`questions.jsonl`](questions.jsonl), which is the file the evaluation actually reads. 50 questions, none reused from development:
+Generated from [`questions.jsonl`](questions.jsonl) by `make_questions_md.py`. The JSONL file is what the evaluation reads. 50 questions, none reused from development:
 
 - **30** answerable, using the course's own terms
 - **8** answerable but **paraphrased**: they describe the idea without its name
-- **12 not covered**: 9 near-misses that sound like course topics, 1 trap (Everest appears in a toy example but no boiling point), 2 off-topic
+- **12 not covered**:
+  - 9 near-misses that sound like course topics
+  - 1 trap
+  - 2 off-topic
 
-Each reference answer was written from the source listed. A script (also a test) checks two things: every key fact appears in the gold lecture's text, and no not-covered topic appears anywhere in the course.
-
-**Please check:** is each reference answer right and complete? Is each question fair, and is anything important missing? Would a real student ask something like this?
+Each reference answer was written from the source listed. Tests check two things:
+- every key fact appears in the gold lecture's text, and none just repeats the question
+- no not-covered topic appears anywhere in the course
 
 | id | type | question | where it's taught | reference answer |
 |---|---|---|---|---|
 | q01 | uses course term | In the MIT/Stanford study of a generative AI assistant at work, how much did productivity improve, and who benefited most? | Lecture 1<br><sub>Module 1 slide 13</sub> | Productivity rose 14% on average; novice and low-skilled workers benefited most, improving by 34%. |
 | q02 | uses course term | What is the difference between intrinsic and extrinsic hallucinations? | Lecture 1<br><sub>Module 1 slide 24</sub> | Hallucinations are generated content that is nonsensical or unfaithful to the source. Intrinsic: the output contradicts / wrongly summarizes the source. Extrinsic: the output comes from the model's training data and the source can neither confirm nor contradict it. |
-| q03 | uses course term | Which package manager does the course use for Python projects, and how do you install it on macOS? | Lecture 1, Lecture 3<br><sub>Module 1 Custom Setup Guide page 1</sub> | uv (Astral's package and project manager), installed on macOS/Linux with: curl -LsSf https://astral.sh/uv/install.sh / sh |
-| q04 | uses course term | What is the Markov assumption in language modeling, and why is it used? | Lecture 2<br><sub>Module 2 slide 19</sub> | Exact modeling needs the full context via the product rule; the Markov assumption simplifies it so each word depends only on the previous word, P(wn / w1:n-1) = P(wn / wn-1), giving the bigram (or n-gram) model. |
+| q03 | uses course term | Which package manager does the course use for Python projects, and how do you install it on macOS? | Lecture 1, Lecture 3<br><sub>Module 1 Custom Setup Guide page 1</sub> | uv (Astral's package and project manager), installed on macOS/Linux with: curl -LsSf https://astral.sh/uv/install.sh \| sh |
+| q04 | uses course term | What is the Markov assumption in language modeling, and why is it used? | Lecture 2<br><sub>Module 2 slide 19</sub> | Exact modeling needs the full context via the product rule; the Markov assumption simplifies it so each word depends only on the previous word, P(wn \| w1:n-1) = P(wn \| wn-1), giving the bigram (or n-gram) model. |
 | q05 | uses course term | What are the limitations of sparse document-term embeddings? | Lecture 2<br><sub>Module 2 slide 22</sub> | High dimensionality (one dimension per vocabulary word, very sparse, expensive) and lack of contextual information: words are treated in isolation, so 'table' is as far from 'desk' as from 'orange'. |
 | q06 | paraphrased | Which rule lets us update our belief about something hidden, like where a self-driving car is, from noisy sensor readings? | Lecture 2<br><sub>Module 2 slides 14-15</sub> | Bayes' theorem: it computes probabilities of latent variables from observable data (evidence), e.g. localizing a self-driving car from noisy sensors. |
 | q07 | uses course term | What is the difference between zero-shot, one-shot and few-shot prompting? | Lecture 3<br><sub>Module 3 slide 8</sub> | Zero-shot: ask directly with no examples (simple but less reliable). One-shot: give one example first. Few-shot: give several examples. |
@@ -40,7 +43,7 @@ Each reference answer was written from the source listed. A script (also a test)
 | q26 | uses course term | What are the query, key and value embeddings used for in an attention head? | Lecture 9<br><sub>Module 9 slide 10</sub> | Each context token gets a key that is compared with the query of the source token to determine relative importance; each token is also mapped to a value embedding, which is weighted to form the output. |
 | q27 | uses course term | What is a causal attention mask and why does GPT need one? | Lecture 9<br><sub>Module 9 slide 12</sub> | For next-word prediction the network may only see words before the predicted position; the causal mask zeros out (blocks) positions after the current index. BERT instead predicts masked words in the middle. |
 | q28 | paraphrased | Why would you add attention to an image-generating GAN? | Lecture 9<br><sub>Module 9 slide 16</sub> | Self-Attention GAN (SAGAN): attention lets the network learn longer-range patterns between pixels that can get lost in convolutional layers. |
-| q29 | uses course term | In the GPT practical, how does top-k sampling change text generation? | Lecture 9<br><sub>Module 8 Practical GPT section 11 (Lecture 9)</sub> | Logits are divided by the temperature; with top-k, all tokens outside the k most likely get -inf, so the next token is sampled only from the k most likely. |
+| q29 | uses course term | In the GPT practical, how does top-k sampling change text generation? | Lecture 9<br><sub>Module 8 Practical GPT, '11. Generating text' (Lecture 9)</sub> | Logits are divided by the temperature; with top-k, all tokens outside the k most likely get -inf, so the next token is sampled only from the k most likely. |
 | q30 | paraphrased | Can the moves an RL agent chooses from be smooth amounts rather than a fixed list of options? | Lecture 10<br><sub>Module 10 slide 5</sub> | Yes: action spaces can be discrete (left, right, up, down) or continuous (e.g. steering wheel rotation and acceleration of a self-driving car). |
 | q31 | uses course term | Why is the reward multiplied by gamma to the power t in an infinite-horizon return? | Lecture 10<br><sub>Module 10 slide 9</sub> | The exponentially decreasing discount factor makes the infinite sum converge; intuitively a reward loses value the longer you have to wait for it. |
 | q32 | paraphrased | Why is Q-learning useful when the agent doesn't have a map of its environment? | Lecture 10<br><sub>Module 9 Practical RL section 7 (Lecture 10)</sub> | With the Q-function the best action is simply argmax_a Q(s, a), so no model of the environment is needed. |
@@ -50,8 +53,8 @@ Each reference answer was written from the source listed. A script (also a test)
 | q36 | uses course term | In LangGraph, what are state, nodes and edges? | `langgraph_intro.ipynb`<br><sub>langgraph_intro.ipynb section 1</sub> | LangGraph is a flowchart engine: the State is shared data, Nodes are units of work, and Edges define the flow between them. |
 | q37 | uses course term | What are the five stages of RAG described in the RAG primer? | `RAG_primer_fast.ipynb`<br><sub>RAG_primer_fast.ipynb section 1</sub> | Embed/vectorize, index, retrieve, augment (put retrieved text in the prompt), generate. |
 | q38 | uses course term | Which metric is used to measure Whisper's quality in the speech recognition fine-tuning lab? | `finetune_whisper_asr-1.ipynb`<br><sub>finetune_whisper_asr-1.ipynb section 1</sub> | Word Error Rate (WER), compared before and after fine-tuning. |
-| q39 | not covered | What is the vanishing gradient problem and how do residual connections solve it? | —<br><sub>near-miss (deep learning); 'vanishing' appears nowhere</sub> | This isn't covered in the course materials. |
-| q40 | not covered | How does PPO's clipped objective keep policy updates stable? | —<br><sub>near-miss (RL / RLHF); no PPO in materials</sub> | This isn't covered in the course materials. |
+| q39 | not covered | What is label smoothing and why does it help when training a classifier? | —<br><sub>near-miss (training); replaces a vanishing-gradient question that was half covered (the GPT practical explains how residual connections keep gradients flowing); 'label smoothing' appears nowhere</sub> | This isn't covered in the course materials. |
+| q40 | not covered | How does PPO's clipped objective keep policy updates stable? | —<br><sub>near-miss (RL / RLHF); PPO is named in the extended Lecture 11 deck ('RL (PPO)'), but its clipped objective is never explained</sub> | This isn't covered in the course materials. |
 | q41 | not covered | What is the codebook in a VQ-VAE? | —<br><sub>near-miss (VAE); no VQ-VAE in materials</sub> | This isn't covered in the course materials. |
 | q42 | not covered | How does Stable Diffusion run diffusion in a VAE's latent space? | —<br><sub>near-miss (diffusion); no latent/Stable Diffusion in materials</sub> | This isn't covered in the course materials. |
 | q43 | not covered | How do mixture-of-experts layers route tokens to experts? | —<br><sub>near-miss (transformers); no MoE in materials</sub> | This isn't covered in the course materials. |
