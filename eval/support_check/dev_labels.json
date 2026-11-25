@@ -1,0 +1,179 @@
+{
+ "how": "Hand labels for the 27 answered development questions (support check off). Criterion: is the answer's main point right according to the course material?",
+ "rejected_by": {
+  "strict": [
+   "r09",
+   "r19",
+   "p09"
+  ],
+  "concept": [
+   "p01",
+   "p09",
+   "p10"
+  ]
+ },
+ "labels": [
+  {
+   "id": "r01",
+   "question": "Why do we need the reparameterization trick when training a VAE?",
+   "label": "partial",
+   "note": "right idea (gradients through sampling) but wrong reasons ('sampling in the decoder', KL justification)"
+  },
+  {
+   "id": "r02",
+   "question": "What does the KL divergence term in the VAE loss do?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "r03",
+   "question": "How is the GAN discriminator trained and what loss does it use?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "r04",
+   "question": "How do LSTMs differ from simple RNNs?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "r05",
+   "question": "How does a normalizing flow compute the probability of a data point?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "r06",
+   "question": "What is Real NVP?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "r07",
+   "question": "How does a diffusion model add noise to an image and then learn to remove it?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "r08",
+   "question": "How do energy-based models generate new samples?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "r09",
+   "question": "Why does a transformer need positional encodings?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "r10",
+   "question": "What is the Bellman equation for the value function?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "r11",
+   "question": "What is the difference between a policy and a value function?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "r13",
+   "question": "When should I use RAG instead of fine-tuning?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "r14",
+   "question": "What does a max pooling layer do in a CNN?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "r15",
+   "question": "How do we estimate next-word probabilities from bigram counts?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "r16",
+   "question": "What is word2vec?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "r17",
+   "question": "How does LoRA reduce the number of trainable parameters?",
+   "label": "partial",
+   "note": "trainable adapters on top of frozen weights, but misses the low-rank decomposition"
+  },
+  {
+   "id": "r18",
+   "question": "Can an LLM judge be biased by the order the answers are shown in?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "r19",
+   "question": "How does a ReAct agent decide between thinking and calling a tool?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "r20",
+   "question": "How do we measure translation quality with BLEU?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "p01",
+   "question": "Why can't we backpropagate through random sampling in an autoencoder, and how do we get around it?",
+   "label": "wrong",
+   "note": "not the reparameterization trick: talks about a uniform distribution and backpropagating through the decoder"
+  },
+  {
+   "id": "p02",
+   "question": "If attention looks at all the words at once, how does the model know their order?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "p05",
+   "question": "How does an agent figure out which actions pay off in the long run rather than right away?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "p06",
+   "question": "How do two networks compete with each other to produce realistic fake images?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "p07",
+   "question": "How do we turn words into vectors so that similar words end up close together?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "p08",
+   "question": "How can we generate images by starting from pure static and cleaning it up step by step?",
+   "label": "correct",
+   "note": ""
+  },
+  {
+   "id": "p09",
+   "question": "How do you get an LLM to grade other models' answers automatically?",
+   "label": "wrong",
+   "note": "says the judge is trained on correct/incorrect answers; the lab prompts it with a rubric"
+  },
+  {
+   "id": "p10",
+   "question": "How does a model shrink an image's resolution while keeping the strongest features?",
+   "label": "wrong",
+   "note": "says convolutions shrink the image; the course answer is pooling"
+  }
+ ]
+}

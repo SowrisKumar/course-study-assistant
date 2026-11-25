@@ -88,6 +88,24 @@ SUPPORTED: yes
 or
 SUPPORTED: no"""
 
+# "concept" variant: ignores the answer and asks only whether the passages discuss the specific thing asked
+# about. On the hand-labelled development set (eval/support_check/dev_labels.json) it rejected the 3 wrong
+# answers and no correct ones; the "strict" check above rejected 2 correct answers and 1 wrong one.
+CONCEPT_SYSTEM = "You check whether course passages cover the specific thing a student asked about."
+
+CONCEPT_PROMPT = """Question: {question}
+
+Course passages:
+{passages}
+
+Do these passages discuss the specific concept, method or system the question asks about (by name, or by clearly describing it)?
+Passages about a related or more general topic do NOT count: for example, passages about transformers do not discuss "rotary embeddings" unless they mention or describe them.
+
+Reply with exactly one line:
+DISCUSSED: yes
+or
+DISCUSSED: no"""
+
 # --- small talk -------------------------------------------------------------------------
 
 CHITCHAT_REPLY = (

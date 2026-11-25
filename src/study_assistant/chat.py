@@ -22,8 +22,8 @@ def main() -> None:
     p.add_argument("-m", "--model", help="override the backend's default model")
     p.add_argument("-r", "--retriever", choices=sorted(RETRIEVERS), default=DEFAULT_RETRIEVER)
     p.add_argument("-v", "--verbose", action="store_true", help="show the steps the assistant took")
-    p.add_argument("--verify", action="store_true",
-                   help="extra support check after answering: fewer unsupported answers, some correct ones refused")
+    p.add_argument("--verify", nargs="?", const="concept", choices=["strict", "concept"],
+                   help="extra support check after answering (default variant: concept)")
     args = p.parse_args()
     warnings.filterwarnings("ignore")
 

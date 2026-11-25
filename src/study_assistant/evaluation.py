@@ -218,7 +218,7 @@ class RunConfig:
     backend: str
     model: str
     retriever: str | None = None
-    variant: str | None = None  # ablations: "nograde" (relevance check off), "verify" (support check on)
+    variant: str | None = None  # ablations: "nograde" (relevance check off), "verify" / "verify-concept" (support check)
 
     @property
     def name(self) -> str:
@@ -314,7 +314,8 @@ def main() -> None:
     p.add_argument("--retriever", default=None, help="retriever for the RAG system (default: the assistant's)")
     p.add_argument("--grading", choices=["llm", "threshold", "none"],
                    help="relevance check for the RAG system (default: llm; threshold for flan)")
-    p.add_argument("--verify", action="store_true", help="turn on the support check (ablation)")
+    p.add_argument("--verify", nargs="?", const="strict", choices=["strict", "concept"],
+                   help="turn on the support check (ablation); bare --verify = strict")
     p.add_argument("--judge", default="ollama", help="backend for LLM-as-judge ('none' to skip)")
     p.add_argument("--limit", type=int, help="only the first N questions (smoke test)")
     p.add_argument("--out", type=Path, default=RESULTS_DIR)
@@ -337,7 +338,8 @@ def main() -> None:
                 retriever = args.retriever or DEFAULT_RETRIEVER
                 default_grading = "threshold" if args.backend == "flan" else "llm"
                 grading = args.grading or default_grading
-                variant = "+".join(v for v, on in (("nograde", grading == "none"), ("verify", args.verify)) if on) or None
+                verify_tag = {"strict": "verify", "concept": "verify-concept"}.get(args.verify)  # "verify" = earlier file names
+                variant = "+".join(v for v, on in (("nograde", grading == "none"), (verify_tag, args.verify)) if on) or None
                 bot = StudyAssistant(llm, build_retriever(retriever), grading=grading, verify=args.verify)
             run(RunConfig(system, args.backend, llm.model, retriever, variant), llm, questions, bot=bot,
                 judge_llm=judge_llm, out_dir=args.out)

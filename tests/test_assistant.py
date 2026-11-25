@@ -152,8 +152,8 @@ class VerifyingLLM(ScriptedLLM):
         self.verify_reply = verify_reply
 
     def _generate(self, prompt, system, max_tokens, temperature):
-        if system == prompts.VERIFY_SYSTEM:
-            self.calls.append(("verify", prompt))
+        if system in (prompts.VERIFY_SYSTEM, prompts.CONCEPT_SYSTEM):
+            self.calls.append(("verify" if system == prompts.VERIFY_SYSTEM else "concept", prompt))
             return LLMResponse(self.verify_reply, self.name, self.model, 0.0)
         return super()._generate(prompt, system, max_tokens, temperature)
 
@@ -187,6 +187,26 @@ def test_is_not_covered(answer, expected):
     from study_assistant.assistant import is_not_covered
 
     assert is_not_covered(answer) is expected
+
+
+def test_concept_check_abstains_when_topic_not_discussed(retriever):
+    llm = VerifyingLLM("DISCUSSED: no", grader_reply="RELEVANT: 1", answer_reply="Rotary embeddings rotate ... [1].")
+    r = make(retriever, llm, verify="concept").ask("What are rotary embeddings?")
+    assert r.abstained and "support check (concept)" in r.abstain_reason
+    assert [k for k, _ in llm.calls] == ["grader", "generate", "concept"]
+    assert "Answer to check" not in llm.calls[-1][1]  # the concept check judges the passages, not the answer
+
+
+def test_concept_check_keeps_answer_when_discussed(retriever):
+    llm = VerifyingLLM("DISCUSSED: yes", grader_reply="RELEVANT: 1", answer_reply="Pooling keeps the max [1].")
+    assert not make(retriever, llm, verify="concept").ask("What does max pooling do?").abstained
+
+
+def test_verify_option_values(retriever):
+    assert make(retriever, ScriptedLLM(), verify=True).verify == "strict"
+    assert make(retriever, ScriptedLLM(), verify=False).verify is None
+    with pytest.raises(ValueError):
+        make(retriever, ScriptedLLM(), verify="loose")
 
 
 def test_verify_unparseable_reply_keeps_answer(retriever):

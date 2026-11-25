@@ -46,11 +46,12 @@ Mode = Literal["answer", "simplify", "quiz", "chitchat"]
 # judge noise, and abstained on one more near-miss. Chosen on the evaluation set, so its scores there
 # are slightly optimistic (see docs/design.md, Step 5).
 DEFAULT_RETRIEVER = "hybrid"
-# Support check (Step 6): off by default. With Llama 3.1 8B as checker it refused 3 of 27 correct answers on
-# the development set; on the Step 5 answers it removed 3 flawed answers and 1 unsupported out-of-scope
-# answer but also 1 correct answer, and missed "vanishing gradients". A trade-off, not a clear win.
-# Available as StudyAssistant(..., verify=True) / `chat --verify`.
-DEFAULT_VERIFY = False
+# Support check (Step 6): None (off), "strict" (is the answer stated in the passages?) or "concept" (do the
+# passages discuss the specific thing asked about?). On the hand-labelled development set strict rejected
+# 2 correct answers and 1 wrong one; concept rejected the 3 wrong answers and no correct ones.
+# Available as StudyAssistant(..., verify="concept") / `chat --verify concept`.
+DEFAULT_VERIFY: str | None = None
+VERIFY_VARIANTS = ("strict", "concept")
 OFF_TOPIC_FLOOR = 0.25  # below this best cosine score the question is clearly unrelated (Step 2: in-scope min 0.37)
 
 
@@ -193,18 +194,22 @@ is_not_covered = is_refusal  # shared with the evaluation (refusal.py)
 class StudyAssistant:
     """
     llm:          writes the answers (any backend from study_assistant.llm)
-    retriever:    Step 2 retriever (default: dense)
+    retriever:    Step 2 retriever (default: hybrid)
     grader_llm:   LLM for the relevance check (default: same as llm)
     grading:      "llm" (default) | "threshold" (score >= threshold; for weak models like flan-t5) | "none"
-    verify:       after answering, check the answer is supported by the passages; abstain if not (Step 6)
+    verify:       support check after answering (Step 6): None | "strict" | "concept" (True = "strict");
+                  abstain if it fails
     k:            chunks to retrieve; max_passages: documents shown to the LLM
     """
 
     def __init__(self, llm: LLM, retriever: Retriever | None = None, *, grader_llm: LLM | None = None,
                  grading: str = "llm", threshold: float = 0.45, k: int = 8, max_passages: int = 5,
-                 off_topic_floor: float = OFF_TOPIC_FLOOR, verify: bool = DEFAULT_VERIFY):
+                 off_topic_floor: float = OFF_TOPIC_FLOOR, verify: str | bool | None = DEFAULT_VERIFY):
         if grading not in ("llm", "threshold", "none"):
             raise ValueError("grading must be 'llm', 'threshold' or 'none'")
+        verify = "strict" if verify is True else (verify or None)
+        if verify not in (None, *VERIFY_VARIANTS):
+            raise ValueError(f"verify must be None or one of {VERIFY_VARIANTS}")
         self.llm = llm
         self.retriever = retriever or build_retriever(DEFAULT_RETRIEVER)
         self.grader_llm = grader_llm or llm
@@ -308,17 +313,20 @@ class StudyAssistant:
         # are removed from both sides so the checker judges content, not numbering.
         passages = "\n\n".join(f"({p.label})\n{p.text}" for p in state["relevant"])
         answer = re.sub(r"[ \t]+([.,;:!?])", r"\1", sub_citations(state["answer"], lambda m: "")).strip()
-        reply = self.grader_llm.generate(
-            prompts.VERIFY_PROMPT.format(question=state["question"], passages=passages, answer=answer),
-            system=prompts.VERIFY_SYSTEM, max_tokens=10,
-        ).text
-        m = re.search(r"SUPPORTED\s*:\s*(yes|no)", reply, re.I)
+        if self.verify == "concept":
+            prompt = prompts.CONCEPT_PROMPT.format(question=state["question"], passages=passages)
+            system, field = prompts.CONCEPT_SYSTEM, "DISCUSSED"
+        else:
+            prompt = prompts.VERIFY_PROMPT.format(question=state["question"], passages=passages, answer=answer)
+            system, field = prompts.VERIFY_SYSTEM, "SUPPORTED"
+        reply = self.grader_llm.generate(prompt, system=system, max_tokens=10).text
+        m = re.search(field + r"\s*:\s*(yes|no)", reply, re.I)
         if m and m.group(1).lower() == "no":
             return {"answer": prompts.NOT_COVERED, "abstained": True, "sources": [], "uncited": False,
-                    "abstain_reason": "support check: answer not supported by the passages",
-                    "trace": ["verify: answer NOT supported by the passages -> abstain"]}
+                    "abstain_reason": f"support check ({self.verify}): answer not supported by the passages",
+                    "trace": [f"verify ({self.verify}): answer NOT supported by the passages -> abstain"]}
         verdict = "supported" if m else f"unparseable reply {reply!r} -> keep answer"
-        return {"trace": [f"verify: {verdict}"]}
+        return {"trace": [f"verify ({self.verify}): {verdict}"]}
 
     # ---- graph ----
 

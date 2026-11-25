@@ -30,7 +30,8 @@ run "Llama + course, hybrid (main)"            --backend ollama --systems rag --
 run "Llama + course, dense"                    --backend ollama --systems rag --retriever dense
 run "Llama, no course"                         --backend ollama --systems no_rag
 run "Ablation: relevance check off"            --backend ollama --systems rag --retriever hybrid --grading none
-run "Ablation: support check on"               --backend ollama --systems rag --retriever hybrid --verify
+run "Ablation: support check on (strict)"      --backend ollama --systems rag --retriever hybrid --verify strict
+run "Ablation: support check on (concept)"     --backend ollama --systems rag --retriever hybrid --verify concept
 run "flan-t5, with and without course"         --backend flan --systems rag,no_rag --retriever hybrid
 run "Judge v2 (with course excerpts), all runs" --rejudge
 
