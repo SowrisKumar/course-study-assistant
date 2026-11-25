@@ -24,6 +24,7 @@ Runs are saved to eval/results/<run>.jsonl one question at a time, so an interru
 from __future__ import annotations
 
 import argparse
+from functools import lru_cache
 import json
 import re
 import time
@@ -47,8 +48,39 @@ Answer the student's question clearly and concisely (at most about 150 words).
 If the question is not something the course would cover, or you don't know, reply exactly: "{prompts.NOT_COVERED}" """
 
 
-def answer_without_course(llm: LLM, question: str) -> dict:
-    r = llm.generate(question, system=BASELINE_SYSTEM, max_tokens=400)
+SYLLABUS_SYSTEM = BASELINE_SYSTEM + f"""
+The course covers only the topics in the outline below (each lecture or lab, then its slide and notebook section titles).
+If the question is about something that is not in this outline, reply exactly: "{prompts.NOT_COVERED}"
+
+Course outline:
+{{outline}}"""
+
+
+@lru_cache(maxsize=1)
+def course_outline() -> str:
+    """A syllabus built from the knowledge base: each deck / notebook / PDF title with its section titles.
+
+    Used by the fairer no-RAG baseline (audit idea C3): it can then judge what the course covers,
+    so the abstention comparison measures grounding rather than knowledge of the syllabus."""
+    from .ingest import load_documents
+
+    outline: dict[tuple, list[str]] = {}
+    for d in load_documents():
+        key = (d.lecture if d.lecture is not None else 99, d.title)
+        sections = outline.setdefault(key, [])
+        section = (d.section or "").split(" › ")[0].strip()  # top-level heading only, not the breadcrumb
+        if section and section != d.title and section not in sections:
+            sections.append(section)
+    lines = []
+    for (lecture, title), sections in sorted(outline.items(), key=lambda kv: (kv[0][0], kv[0][1])):
+        where = f"Lecture {lecture}" if lecture != 99 else "Add-on lab"
+        lines.append(f"- {where} · {title}: " + "; ".join(sections))
+    return "\n".join(lines)
+
+
+def answer_without_course(llm: LLM, question: str, syllabus: bool = False) -> dict:
+    system = SYLLABUS_SYSTEM.format(outline=course_outline()) if syllabus else BASELINE_SYSTEM
+    r = llm.generate(question, system=system, max_tokens=400)
     abstained = is_refusal(r.text)
     return {"answer": prompts.NOT_COVERED if abstained else r.text, "abstained": abstained,
             "sources": [], "latency_s": r.latency_s}
@@ -218,7 +250,8 @@ class RunConfig:
     backend: str
     model: str
     retriever: str | None = None
-    variant: str | None = None  # ablations: "nograde" (relevance check off), "verify" / "verify-concept" (support check)
+    variant: str | None = None  # ablations: "nograde", "verify", "verify-concept", "nofloor", "ctx-small", "ctx-large";
+    #                            no-RAG: "syllabus" (baseline sees the course outline)
 
     @property
     def name(self) -> str:
@@ -239,7 +272,8 @@ def run(config: RunConfig, llm: LLM, questions: list[dict], *, bot=None, judge_l
     for i, q in enumerate(questions, start=1):
         rec = results.get(q["id"])
         if rec is None:
-            res = answer_with_course(bot, q["question"]) if config.system == "rag" else answer_without_course(llm, q["question"])
+            res = (answer_with_course(bot, q["question"]) if config.system == "rag"
+                   else answer_without_course(llm, q["question"], syllabus=config.variant == "syllabus"))
             rec = {"id": q["id"], "type": q["type"], "question": q["question"], **config.__dict__, "run": config.name, **res}
         if q["type"] != "out_of_scope" and not rec["abstained"]:
             rec["key_fact_recall"] = key_fact_recall(rec["answer"], q["key_facts"])
@@ -316,6 +350,11 @@ def main() -> None:
                    help="relevance check for the RAG system (default: llm; threshold for flan)")
     p.add_argument("--verify", nargs="?", const="strict", choices=["strict", "concept"],
                    help="turn on the support check (ablation); bare --verify = strict")
+    p.add_argument("--no-floor", action="store_true", help="turn off the similarity floor (ablation)")
+    p.add_argument("--context", choices=["small", "large"],
+                   help="passages shown to the model (ablation): small = 4 chunks / 3 passages, large = 16 / 8 "
+                        "(default 8 / 5)")
+    p.add_argument("--syllabus", action="store_true", help="no-RAG baseline also sees the course outline")
     p.add_argument("--judge", default="ollama", help="backend for LLM-as-judge ('none' to skip)")
     p.add_argument("--limit", type=int, help="only the first N questions (smoke test)")
     p.add_argument("--out", type=Path, default=RESULTS_DIR)
@@ -339,8 +378,15 @@ def main() -> None:
                 default_grading = "threshold" if args.backend == "flan" else "llm"
                 grading = args.grading or default_grading
                 verify_tag = {"strict": "verify", "concept": "verify-concept"}.get(args.verify)  # "verify" = earlier file names
-                variant = "+".join(v for v, on in (("nograde", grading == "none"), (verify_tag, args.verify)) if on) or None
-                bot = StudyAssistant(llm, build_retriever(retriever), grading=grading, verify=args.verify)
+                ctx_tag = f"ctx-{args.context}" if args.context else None
+                variant = "+".join(v for v, on in (("nograde", grading == "none"), (verify_tag, args.verify),
+                                                    ("nofloor", args.no_floor), (ctx_tag, args.context)) if on) or None
+                k, max_passages = {"small": (4, 3), "large": (16, 8)}.get(args.context, (8, 5))
+                extra = {"off_topic_floor": -1.0} if args.no_floor else {}
+                bot = StudyAssistant(llm, build_retriever(retriever), grading=grading, verify=args.verify,
+                                     k=k, max_passages=max_passages, **extra)
+            elif args.syllabus:
+                variant = "syllabus"
             run(RunConfig(system, args.backend, llm.model, retriever, variant), llm, questions, bot=bot,
                 judge_llm=judge_llm, out_dir=args.out)
 
