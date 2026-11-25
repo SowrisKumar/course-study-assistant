@@ -16,8 +16,8 @@
       END
 
 Why the relevance check: Step 2 showed that similarity scores can't tell covered from
-not-covered questions ("capital of France" scored like a real question, "mode collapse"
-beat seven real ones), so the LLM reads the passages and decides.
+not-covered questions ("capital of France" scored above the weakest real question, "mode collapse"
+beat six real ones), so the LLM reads the passages and decides.
 
     from study_assistant.assistant import StudyAssistant
     from study_assistant.llm import get_llm

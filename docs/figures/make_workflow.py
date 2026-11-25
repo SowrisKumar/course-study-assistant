@@ -19,16 +19,15 @@ NODES = {
     "retrieve": (0.5, 6.7, "retrieve (hybrid: BM25 + dense)\ntop 8 chunks → ≤ 5 passages", NODE),
     "check": (0.5, 5.5, "check\nsimilarity floor + LLM relevance", DECIDE),
     "generate": (0.5, 4.3, "generate\nanswer / explanation / quiz,\nciting passages as [n]", NODE),
-    "cite": (0.5, 3.1, "cite\nvalidate [n], map to lecture + slide", NODE),
-    "verify": (0.5, 1.9, "verify (optional, --verify)\nsupport check", DECIDE),
-    "answer": (0.5, 0.8, "answer + sources", DONE),
-    "abstain": (4.1, 3.1, "abstain\n\"This isn't covered in\nthe course materials.\"", STOP),
+    "cite": (0.5, 3.1, "cite\nvalidate [n], map to lecture + slide;\nmodel declined → mark as declined", NODE),
+    "verify": (0.5, 1.9, "verify (optional, --verify)\nsupport check; fails → mark as declined", DECIDE),
+    "answer": (0.5, 0.8, "reply: answer + sources,\nor \"not covered\" if marked as declined", DONE),
+    "abstain": (4.1, 5.5, "abstain\n\"This isn't covered in\nthe course materials.\"", STOP),
 }
 EDGES = [  # (from, to, label)
     ("q", "route", ""), ("route", "chit", "hi / thanks"), ("route", "retrieve", ""),
-    ("retrieve", "check", ""), ("check", "generate", "relevant"), ("check", "abstain", "off-topic / none relevant"),
-    ("generate", "cite", ""), ("cite", "abstain", "model says\nnot covered"), ("cite", "verify", ""),
-    ("verify", "abstain", "not supported"), ("verify", "answer", "ok / off"),
+    ("retrieve", "check", ""), ("check", "generate", "relevant"), ("check", "abstain", "off-topic /\nnone relevant"),
+    ("generate", "cite", ""), ("cite", "verify", ""), ("verify", "answer", ""),
 ]
 W, H = 2.6, 0.78
 

@@ -48,10 +48,9 @@ flowchart TD
     RET --> CHK{relevant?<br/>similarity floor + LLM check}
     CHK -->|no| ABS["abstain:<br/>'This isn't covered in the course materials.'"]
     CHK -->|yes| GEN[generate<br/>answer / simple explanation / quiz<br/>citing passages as n]
-    GEN --> CITE[cite<br/>validate citations, map to lecture + slide]
-    CITE -->|model says not covered| ABS
-    CITE -.->|optional --verify| VER{support check}
-    VER -->|fails| ABS
+    GEN --> CITE[cite<br/>validate citations, map to lecture + slide;<br/>model said not covered → mark as declined]
+    CITE --> VER{verify<br/>optional support check;<br/>fails → mark as declined}
+    VER --> OUT[reply: answer + sources,<br/>or 'not covered' if declined]
 ```
 
 ## Run it
@@ -87,7 +86,7 @@ uv run python -m study_assistant.llm -b ollama "What is a GAN?"
 
 ```bash
 ./scripts/run_evaluation.sh        # re-runs every configuration into a new eval/runs/<date>-<commit>/ folder
-                                   # (~2.5 h on an M2, needs Ollama + llama3.1:8b); eval/results/ is never touched
+                                   # (~2¾ h on an M2, needs Ollama + llama3.1:8b); eval/results/ is never touched
 uv run python eval/analysis.py     # the reported run: hand-checked and strict scores, 95% intervals, McNemar tests
 uv run python eval/analysis.py --results eval/runs/<folder>   # the same for your own run
 ```

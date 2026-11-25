@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Re-runs every evaluation configuration in docs/report.md from scratch.
-# Needs: `uv sync`, Ollama running with `ollama pull llama3.1:8b`. Takes about 2.5 hours on an M2 laptop.
+# Needs: `uv sync`, Ollama running with `ollama pull llama3.1:8b`. Takes about 2¾ hours on an M2 laptop.
 #
 # Results go to a NEW folder, eval/runs/<date>-<commit>/ (override with OUT=...). The run reported in
 # docs/report.md stays untouched in eval/results/. The script refuses to write into a folder that already

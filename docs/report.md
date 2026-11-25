@@ -323,7 +323,7 @@ git clone https://github.com/SowrisKumar/course-study-assistant.git && cd course
 uv sync && uv run pytest                        # 120+ tests; the first run downloads the embedding model
 ollama pull llama3.1:8b                         # local model (or add a Gemini/OpenAI key to .env)
 uv run python -m study_assistant.chat -v        # chat with the assistant
-./scripts/run_evaluation.sh                     # reproduce every evaluation number (~2 h on an M2)
+./scripts/run_evaluation.sh                     # re-run every evaluation configuration (~2¾ h on an M2)
 uv run python eval/analysis.py                  # hand-corrected scores, intervals and tests
 ```
 
