@@ -27,6 +27,8 @@ dev = [
     "ipykernel>=6.29",
     "nbformat>=5.10",
     "matplotlib>=3.11.2",
+    "jupyterlab>=4.6.6",
+    "nbconvert>=7.17.2",
 ]
 
 [build-system]

@@ -28,7 +28,7 @@ class Document:
     section: str  # slide title / notebook heading / page heading
     locator: str  # "slide 5" | "cells 3-7" | "page 2"
     lecture: int | None  # lecture module this material belongs to (None = agents/LLM add-on labs)
-    track: str  # "lecture" (core modules) or "agents" (agents/LLM add-on labs)
+    track: str  # "lecture" (core modules) or "add-on lab" (agents/LLM add-on labs)
     extra: dict = field(default_factory=dict)  # loader-specific flags (ocr, n_images, has_code, ...)
 
     @property

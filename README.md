@@ -6,16 +6,16 @@ Built with the tools from class: RAG (embeddings + vector search) and a LangGrap
 
 Team: Sowris Kumar Sripathy, Alfonso Garcia. Original proposal: [`docs/proposal.png`](docs/proposal.png).
 
-## Results (Step 5)
+## Results
 
-50 new questions: 38 the course covers and 12 it doesn't, 10 of which deliberately *sound* like course topics. Local Llama 3.1 8B, graded by Llama 3.1 8B; details and caveats are in [notebook 05](notebooks/05_evaluation.ipynb).
+50 new questions: 38 the course covers and 12 it doesn't, 10 of which deliberately *sound* like course topics. Local Llama 3.1 8B, graded by Llama 3.1 8B, and every failed answer re-checked by hand. Details, intervals and caveats are in the [report](docs/report.md) and [notebook 05](notebooks/05_evaluation.ipynb).
 
 | | Assistant (Llama + course) | Same Llama, no course |
 |---|---|---|
-| Answers covered questions correctly | **97%** | 55% |
+| Answers covered questions correctly (by hand) | **97%** (37/38) | 61% |
 | Cites the right lecture | **97%** | – |
-| Says "not covered" when it isn't | **92%** | 33% |
-| …for topics that sound like the course (PPO, DPO, FID…) | **90%** | 20% |
+| Says "not covered" when it isn't | **100%** (12/12) | 33% |
+| …for topics that sound like the course (PPO, DPO, FID…) | **100%** (10/10) | 20% |
 
 ## Try it
 
@@ -48,6 +48,8 @@ flowchart TD
     CHK -->|yes| GEN[generate<br/>answer / simple explanation / quiz<br/>citing passages as n]
     GEN --> CITE[cite<br/>validate citations, map to lecture + slide]
     CITE -->|model says not covered| ABS
+    CITE -.->|optional --verify| VER{support check}
+    VER -->|fails| ABS
 ```
 
 ## Run it
@@ -61,7 +63,7 @@ uv sync
 uv run pytest
 ```
 
-Everything needed is in the repo. The first run downloads the small embedding model (~90 MB) from Hugging Face. The knowledge base (the course materials' text, already extracted and cleaned) is `data/processed/documents.jsonl`. Walk through it in [`notebooks/01_ingest_explore.ipynb`](notebooks/01_ingest_explore.ipynb).
+Everything needed is in the repo. The first run (tests included) needs internet once, to download the small embedding model (~90 MB) from Hugging Face. The knowledge base (the course materials' text, already extracted and cleaned) is `data/processed/documents.jsonl`. Walk through it in [`notebooks/01_ingest_explore.ipynb`](notebooks/01_ingest_explore.ipynb).
 
 ### Language models
 
@@ -79,11 +81,18 @@ uv run python -m study_assistant.llm --check
 uv run python -m study_assistant.llm -b ollama "What is a GAN?"
 ```
 
+### Reproducing the evaluation
+
+```bash
+./scripts/run_evaluation.sh        # every configuration in the report (~2 h on an M2, needs Ollama + llama3.1:8b)
+uv run python eval/analysis.py     # hand-corrected scores, 95% intervals, McNemar tests
+```
+
 ## Status
 
 | Step | What | Status |
 |---|---|---|
-| 1 | Knowledge base: slides / notebooks / PDFs → 507 documents with citation info | ✅ |
+| 1 | Knowledge base: slides / notebooks / PDFs → 538 documents with citation info | ✅ |
 | 2 | Chunking + retrieval: TF-IDF, BM25, dense, hybrid compared ([notebook 02](notebooks/02_retrieval.ipynb)) | ✅ |
 | 3 | LLM backends: OpenAI, Gemini, Ollama (Llama 3.1), flan-t5 ([notebook 03](notebooks/03_llm_backends.ipynb)) | ✅ |
 | 4 | LangGraph assistant: answer / simplify / quiz / abstain, with citations ([notebook 04](notebooks/04_assistant_demo.ipynb)) | ✅ |
@@ -99,7 +108,8 @@ data/processed/documents.jsonl   the knowledge base
 src/study_assistant/             the code: ingest/ (knowledge base), chunking.py, retrieval.py, llm/,
                                  assistant.py (LangGraph workflow), prompts.py, chat.py
 notebooks/                       step-by-step walkthroughs
-eval/                            questions with verified answers; evaluation results
+eval/                            questions with verified answers; results, hand labels, analysis
+scripts/run_evaluation.sh        reproduces every evaluation number
 tests/                           tests
 docs/                            proposal, design log
 ```

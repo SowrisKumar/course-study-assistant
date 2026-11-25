@@ -14,3 +14,12 @@
 | flan-t5, with and without course | 3 |
 | Judge v2 (with course excerpts), all runs | 16 |
 - finished: 2026-11-25 03:59 UTC
+
+## Added later
+- code: git c026e50
+
+| configuration | minutes |
+|---|---|
+| Ablation: support check on (concept) | 17 |
+
+Judge v2 was then re-run with `--rejudge` (it only scores answers that have no v2 score yet).

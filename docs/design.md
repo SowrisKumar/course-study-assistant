@@ -20,7 +20,8 @@ Improvements over the proposal:
 ## Step 1 — Ingestion
 
 ### Corpus
-- **Included:** 11 lecture decks (`.pptx`), 1 extended Module 10 deck exported as images (`module10_rl_slides.pdf`), 28 notebooks (practicals + agents/LLM add-on labs), 6 activity PDFs, 1 setup-guide PDF. That is 47 files → 507 documents.
+- **Included:** 11 lecture decks (`.pptx`), 2 extended decks exported as images (`module10_rl_slides.pdf` for Lecture 10, `module11_rl_genai_slides.pdf` for Lecture 11), 28 notebooks (practicals + agents/LLM add-on labs), 6 activity PDFs, 1 setup-guide PDF. That is 48 files → 538 documents.
+- The extended Lecture 11 deck was missed at first and added after the audit (see "Audit and final re-run").
 - **Excluded:** our own assignment submissions (`Assignment_*.docx`), because the assistant should answer from what was *taught*, not from our answers. Also excluded: `shared/*.py` helper code (supporting code for the labs, not teaching material).
 
 ### Unit of a document
@@ -58,7 +59,7 @@ Lecture 7 (Normalizing Flows) has slides only (10 slides, no practical), so it i
 | pypdf removed spaces in code (`importtorch.nnasnn`) | Switched to **PyMuPDF** |
 | PDF reading order put every code listing after all the headings | `get_text(sort=True)` (position-based order) |
 | Course-website header, sidebar, URL and page-counter lines in PDFs | Remove lines that repeat at the top/bottom of most pages, plus regex for URLs, counters and the sidebar prefix |
-| `module10_rl_slides.pdf` has **no text layer** (28 images) | OCR with **RapidOCR** (pip-only, no system install), cached by file hash |
+| The extended decks `module10_rl_slides.pdf` and `module11_rl_genai_slides.pdf` have **no text layer** (28 and 31 images) | OCR with **RapidOCR** (pip-only, no system install), cached by file hash |
 | OCR read two side-by-side callout boxes line by line across both, interleaving sentences | Rebuild the layout from OCR boxes: group lines into blocks (same left edge, small gap), then order blocks by row and left-to-right |
 | Marimo export notice cells and `pip install` lines in notebooks | Dropped |
 | Section-divider / title slides with no content | Kept but flagged `low_content`; the index will skip them so they don't out-rank real content |
@@ -70,10 +71,10 @@ Lecture 7 (Normalizing Flows) has slides only (10 slides, no practical), so it i
 - Notebook outputs are dropped.
 
 ### Numbers
-- 507 documents: 242 slides, 250 notebook sections, 11 activity pages, 4 guide pages.
-- 43 are flagged low-content, which leaves 464 to index.
-- Median length: slides about 400 chars, notebook sections about 1,450 chars.
-- 171 documents are longer than about 1,000 chars, the point at which `all-MiniLM-L6-v2` stops reading (256 word-pieces). This drives Step 2's chunking.
+- 538 documents: 273 slides, 250 notebook sections, 11 activity pages, 4 guide pages.
+- 43 are flagged low-content, which leaves 495 to index.
+- Median length: slides about 510 chars, notebook sections about 1,470 chars.
+- 173 documents are longer than about 1,000 chars, the point at which `all-MiniLM-L6-v2` stops reading (256 word-pieces). This drives Step 2's chunking.
 
 ## Step 2 — Chunking and retrieval
 
@@ -84,7 +85,7 @@ Lecture 7 (Normalizing Flows) has slides only (10 slides, no practical), so it i
 - Neighbouring chunks share one short paragraph (≤ 60 tokens) as overlap.
 - Every chunk's embedded text starts with a header `title › section`, so a code fragment from the middle of a notebook keeps its topic.
 - Low-content documents are skipped.
-- Result: **1,202 chunks** (971 notebook, 201 slides, 18 activity, 12 guide). None is over the limit, and no text is lost (tested).
+- Result: **1,237 chunks** (970 notebook, 237 slides, 18 activity, 12 guide). None is over the limit, and no text is lost (tested).
 
 ### Retrievers (`retrieval.py`)
 | Method | Implementation |
@@ -106,15 +107,17 @@ A hit counts if it comes from the gold lecture or file.
 
 | hit@5 | keyword (20) | paraphrase (10) | all (30) | MRR@10 (all) |
 |---|---|---|---|---|
-| TF-IDF | 1.00 | 0.50 | 0.83 | 0.81 |
+| TF-IDF | 1.00 | 0.60 | 0.87 | 0.84 |
 | BM25 | 1.00 | 0.80 | 0.93 | 0.86 |
-| Dense | 0.95 | **0.90** | 0.93 | **0.89** |
-| Hybrid | 1.00 | 0.70 | 0.90 | 0.89 |
+| Dense | 1.00 | **1.00** | **1.00** | 0.90 |
+| Hybrid | 1.00 | 0.80 | 0.93 | **0.92** |
+
+(Numbers on the final knowledge base. Before the extended Lecture 11 deck was added, paraphrase hit@5 was 0.50 / 0.80 / 0.90 / 0.70; the conclusions are the same.)
 
 Findings:
 - **Keyword search only works when the student already knows the course's term.** Dense retrieval handles paraphrases best.
 - **Hybrid (RRF) did not beat dense on paraphrases.** In the LoRA question, BM25 and dense each found a *different part* of the same notebook section, so neither part got enough fused votes. Candidate fix for Step 6: merge votes per section before fusing.
-- **A similarity threshold cannot detect "not covered".** "Capital of France" scores 0.36, while the weakest real question scores 0.37. The near-miss "mode collapse" scores 0.48, above 7 of the 30 real questions. **Decision:** Step 4 adds an LLM relevance check before answering. The threshold is only used to drop obvious off-topic questions.
+- **A similarity threshold cannot detect "not covered".** "Capital of France" scores 0.43, *above* the weakest real question (0.37), because the extended Lecture 11 deck uses it as an example prompt. The near-miss "mode collapse" scores 0.48, above 6 of the 30 real questions. **Decision:** Step 4 adds an LLM relevance check before answering. The threshold is only used to drop obvious off-topic questions.
 - **We don't tune on these 30 questions**, because we wrote them while building the system. The default retriever is chosen on the Step 5 evaluation.
 
 Limitations: the set is small (one question is 3–10 points), and relevance is judged at lecture level, not slide level.
@@ -150,7 +153,7 @@ First observations (notebook 03, one question, so anecdotal; Step 5 measures it 
 | Node | What it does | Why |
 |---|---|---|
 | route | Rule-based mode detection: quiz / simplify / chitchat / answer. Removes the request words ("quiz me on") from the search query. | Cheap and predictable, like the class router. Only explicit phrases trigger simplify, so "simple RNNs" stays a normal question. |
-| retrieve | Top 8 chunks (dense retriever by default), grouped into at most 5 passages, one per document | Each source is cited once, and the model sees chunks of the same document together |
+| retrieve | Top 8 chunks (dense retriever at this step; hybrid became the default in Step 5), grouped into at most 5 passages, one per document | Each source is cited once, and the model sees chunks of the same document together |
 | check | Off-topic floor (best cosine < 0.25 means abstain with no LLM call), then **one** LLM call grading all passages (`RELEVANT: 1, 3`) | Step 2 showed thresholds can't separate in-scope from out-of-scope. One call instead of one per passage keeps it fast. If the reply can't be parsed, all passages are kept (fail open), because the next layer can still abstain. |
 | generate | Mode-specific system prompt. Only the passages, cite `[n]`, reply exactly with the NOT_COVERED sentence if they're insufficient | Grounding plus a second abstention layer |
 | cite | Drops citations to passages that weren't shown, renumbers `[n]` in order of use, maps them to "Lecture N · title, slide/section". A NOT_COVERED reply becomes an abstention; an answer with no citations is flagged. | Citations are checked, not trusted |
@@ -198,7 +201,9 @@ How the set was built and checked:
 - The no-RAG chatbot refused the MIT/Stanford study question, which only the course material can answer.
 - The judge (Llama 3.1 8B) gave full marks to a no-RAG answer that missed the course's main point (convergence), whose key-fact recall was 0.5. Judges can be lenient, which is why key-fact recall is reported alongside. If the judge is the same model as the answerer, that also biases the result; a different judge model is preferable.
 
-## Step 5 — Results (notebook 05; raw answers in `eval/results/`)
+## Step 5 — Results (before the audit)
+
+> **Superseded.** These are the first results, kept as a record of how decisions were made. Raw answers are archived in `eval/archive/results_before_audit/`. The audit found problems with the data and the scoring, and every number was re-measured; see "Audit and final re-run" below.
 
 Five configurations were run on all 50 questions: Llama 3.1 8B with the course (hybrid and dense retrieval) and without it, and flan-t5-base with and without the course. The grader is Llama 3.1 8B (chosen by the team).
 
@@ -239,7 +244,9 @@ Other errors:
 - hybrid was selected on this set
 - the questions were not independently reviewed
 
-## Step 6 — Support check, and the final report
+## Step 6 — Support check (before the audit)
+
+> **Partly wrong; corrected below.** The development-set conclusion below treated every one of the 27 answered development questions as correct. Labelling them by hand showed 3 were wrong, which reverses the comparison of the two variants (see "Audit and final re-run").
 
 **Goal:** remove the Step 5 failure where an answer cites passages that don't support it.
 
@@ -262,3 +269,30 @@ Other errors:
 **Decision: off by default; available as `verify=True` / `chat --verify`.** It is a precision-for-coverage trade-off with an 8B checker, not a clear win. A stronger checker model, or checking sentence by sentence, is the next step.
 
 **Final report:** `docs/report.md` (figure in `docs/figures/`).
+
+## Audit and final re-run
+
+After Step 6 we asked for an independent, read-only audit of the whole project (a fresh review that looked for errors in the data, the scoring and the write-up). It found real problems; we fixed them and re-ran every evaluation. All numbers in `docs/report.md` and notebook 05 come from that final run (`eval/results/RUN_INFO.md`).
+
+### What was wrong, and the fix
+| Problem | Fix |
+|---|---|
+| **The extended Lecture 11 deck was not in the knowledge base.** It names PPO, which a "not covered" question asked about. Without a catalogue entry it would also have been labelled a "guide". | Catalogue entry, re-ingest (48 files, 538 documents, 1,237 chunks). q40 now asks about PPO's *clipped objective*, which the deck does not explain. |
+| **q39 ("vanishing gradients and residual connections") was half covered:** the GPT practical says residuals keep gradients flowing. Our headline failure example was partly a grounded answer to a mislabelled question. | Replaced with "label smoothing", which appears nowhere in the course (tested). Failure analysis rewritten around dense's Stable Diffusion answer. |
+| **The headline 97% included an answer we knew was wrong** (we had hand-checked only where dense and hybrid differed). | Every failed answer in every Llama run re-read by hand, plus all passes of the main and no-course runs (`eval/hand_labels.json`). Both automatic and hand scores reported. |
+| **The relevance check never declined a question**, so "two independent abstention layers" was not true. | Said so, and ran an ablation with the check off: same results. |
+| **The reproduce instructions re-ran nothing** (results resume by file name) and covered 2 of 5 configurations. | `scripts/run_evaluation.sh` runs every configuration, then judge v2, and records code version, model digest and timings. |
+| **Key facts were loose:** some matched inside other words or just repeated the question. | Word-start matching, 11 key-fact lists tightened, a test that no key fact repeats the question. |
+| **Citation handling broke code:** `outputs[0]` was read as a citation, and renumbering could crash. | Citations are only parsed outside code spans (tested). |
+| **Two refusal detectors** (assistant and evaluation) disagreed on hedged refusals. | One shared detector, `refusal.py`. |
+| Stale documentation, notebook outputs showing local paths, missing notebook dependencies. | Fixed; notebooks re-executed on the final knowledge base. |
+
+The pre-audit results are archived in `eval/archive/results_before_audit/`. The conclusions did not change direction, but the numbers did: hybrid is 95% by the automatic metric and 97% by hand, the no-course baseline 47% and 61%.
+
+### Statistics
+With 38 + 12 questions we now report 95% Wilson intervals and exact McNemar tests (`eval/analysis.py`). Only course vs no course is significant (p < 0.001); hybrid vs dense is not (4 vs 1 disagreements, p = 0.38).
+
+### Support check, re-assessed
+- **The Step 6 development result was wrong.** It counted every rejected development answer as a correct answer lost. Hand labels (`eval/support_check/dev_labels.json`) show strict rejected 2 correct answers and 1 of the 3 wrong ones; concept rejected all 3 wrong ones and no correct ones. So concept is the better variant, chosen on development data only, and it was added as `verify="concept"`.
+- **On the evaluation set neither helps:** the main system already declines all 12 not-covered questions. Strict rejected one correct answer (q02); concept changed nothing. Both add about 4 s per answer.
+- **Decision: off by default** (the default system is the evaluated one). `chat --verify` uses the concept variant.

@@ -1,0 +1,166 @@
+{
+  "_about": [
+    "Hand verdicts on answerable questions, for the Llama 3.1 8B runs in eval/results/ (code 91cc6b3 / c026e50).",
+    "Every answer the main metric marked NOT correct was re-read against the reference and the gold lecture and is listed here.",
+    "All answers the main metric marked correct were also re-read for the hybrid and no-course runs; none were overturned.",
+    "Answers not listed keep the main metric's verdict (correct). 'partial' counts as not correct.",
+    "Rule: correct = states the reference's main point(s) and nothing clearly wrong about them; extra detail is fine.",
+    "Labelled by the assistant's developers (not blind to the system); see docs/report.md, Threats to validity."
+  ],
+  "rag__ollama__llama3.1-8b__hybrid": {
+    "q19": [
+      "partial",
+      "says to condition on the label but never mentions one-hot labels or giving the critic the labels"
+    ],
+    "q29": [
+      "correct",
+      "'truncates the long tail before sampling' = keep only the k most likely; key-fact wording too strict"
+    ]
+  },
+  "rag__ollama__llama3.1-8b__dense": {
+    "q02": [
+      "correct",
+      "same definitions as the hybrid answer (judge v2 gave that one 2)"
+    ],
+    "q11": [
+      "partial",
+      "wrongly says reshape might copy 'even if the memory is contiguous'"
+    ],
+    "q17": [
+      "wrong",
+      "false refusal"
+    ],
+    "q20": [
+      "correct",
+      "change of variables to a Gaussian with a neural network: the core idea asked for"
+    ],
+    "q27": [
+      "correct",
+      "-inf before softmax blocks future positions; judge v2 complaint is wrong"
+    ],
+    "q29": [
+      "correct",
+      "same content as hybrid q29 (citation marker lost: 'According to passage ,')"
+    ],
+    "q30": [
+      "wrong",
+      "false refusal"
+    ],
+    "q35": [
+      "correct",
+      "lists all four tiers exactly; judge v2 complaint is wrong"
+    ]
+  },
+  "rag__ollama__llama3.1-8b__hybrid__nograde": {
+    "q15": [
+      "wrong",
+      "'Upsampling Layer' instead of transposed convolution"
+    ]
+  },
+  "rag__ollama__llama3.1-8b__hybrid__verify": {
+    "q02": [
+      "wrong",
+      "false refusal by the strict support check"
+    ],
+    "q19": [
+      "partial",
+      "same answer as hybrid q19"
+    ],
+    "q29": [
+      "correct",
+      "same answer as hybrid q29"
+    ]
+  },
+  "no_rag__ollama__llama3.1-8b": {
+    "q01": [
+      "wrong",
+      "refused"
+    ],
+    "q02": [
+      "wrong",
+      "wrong definitions (intrinsic = plausible extension of the input)"
+    ],
+    "q03": [
+      "wrong",
+      "says Conda; the course uses uv"
+    ],
+    "q05": [
+      "correct",
+      "high cost and no semantic relationships; judge too harsh"
+    ],
+    "q06": [
+      "wrong",
+      "Kalman filter instead of Bayes' theorem"
+    ],
+    "q07": [
+      "correct",
+      "no / one / a few examples; key-fact wording too strict"
+    ],
+    "q08": [
+      "partial",
+      "generic 'multiple models'; no retrievers, tools or real-time retrieval"
+    ],
+    "q09": [
+      "correct",
+      "bias, misinformation, intellectual property"
+    ],
+    "q12": [
+      "correct",
+      "MSE and cross-entropy (plus extras)"
+    ],
+    "q21": [
+      "partial",
+      "never mentions normalisation / integrating to 1"
+    ],
+    "q22": [
+      "partial",
+      "names contrastive divergence but defines it wrongly"
+    ],
+    "q23": [
+      "correct",
+      "U-Net; noisy sample and noise level"
+    ],
+    "q24": [
+      "partial",
+      "describes refinement steps, not how the noise parameter varies per step"
+    ],
+    "q25": [
+      "partial",
+      "no mention of large values interfering or bounded/relative distances"
+    ],
+    "q28": [
+      "partial",
+      "'focus on regions', not longer-range patterns lost in convolutions"
+    ],
+    "q33": [
+      "partial",
+      "generic fine-tuning; no human-written prompt-response demonstrations or instruction following"
+    ],
+    "q34": [
+      "wrong",
+      "says self-supervised learning; the course example is RL with rule-based rewards"
+    ],
+    "q35": [
+      "wrong",
+      "invented tiers"
+    ],
+    "q36": [
+      "wrong",
+      "nodes = words/tokens"
+    ],
+    "q37": [
+      "wrong",
+      "invented 'Recurrent Attention-Generative' stages"
+    ]
+  },
+  "rag__ollama__llama3.1-8b__hybrid__verify-concept": {
+    "q19": [
+      "partial",
+      "same answer as hybrid q19"
+    ],
+    "q29": [
+      "correct",
+      "same answer as hybrid q29"
+    ]
+  }
+}
