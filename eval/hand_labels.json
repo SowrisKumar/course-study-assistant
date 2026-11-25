@@ -5,7 +5,8 @@
     "All answers the main metric marked correct were also re-read for the hybrid and no-course runs; none were overturned.",
     "Answers not listed keep the main metric's verdict (correct). 'partial' counts as not correct.",
     "Rule: correct = states the reference's main point(s) and nothing clearly wrong about them; extra detail is fine.",
-    "Labelled by the assistant's developers (not blind to the system); see docs/report.md, Threats to validity."
+    "Labelled by the assistant's developers (not blind to the system); see docs/report.md, Threats to validity.",
+    "For the syllabus baselines every answered covered question is listed; all their refusals count as wrong."
   ],
   "rag__ollama__llama3.1-8b__hybrid": {
     "q19": [
@@ -161,6 +162,32 @@
     "q29": [
       "correct",
       "same answer as hybrid q29"
+    ]
+  },
+  "no_rag__ollama__llama3.1-8b__syllabus": {
+    "q03": [
+      "correct",
+      "names uv; installs via Homebrew rather than the course's curl script, which also works on macOS (benefit of the doubt)"
+    ],
+    "q20": [
+      "correct",
+      "invertible transformations of a simple distribution: the core idea"
+    ],
+    "q33": [
+      "partial",
+      "generic fine-tuning; wrongly says pre-trained weights are frozen; no human-written demonstrations"
+    ],
+    "q36": [
+      "correct",
+      "state = shared data, nodes = functions/steps, edges = flow"
+    ],
+    "q37": [
+      "partial",
+      "turns the outline's section headings into stages (merges vectorize+index, adds 'optional' as a stage)"
+    ],
+    "q38": [
+      "correct",
+      "WER"
     ]
   }
 }

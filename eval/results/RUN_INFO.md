@@ -23,3 +23,14 @@
 | Ablation: support check on (concept) | 17 |
 
 Judge v2 was then re-run with `--rejudge` (it only scores answers that have no v2 score yet).
+
+## Added later (quick improvements)
+- code: git 308ebb8
+
+| configuration | minutes |
+|---|---|
+| Llama, no course, sees the syllabus | 2 |
+| Ablation: similarity floor off | 14 |
+| Ablation: less context (3 passages) | 9 |
+| Ablation: more context (8 passages) | 18 |
+| Judge v2 for the new runs | 9 |

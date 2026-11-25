@@ -29,7 +29,7 @@ from functools import cached_property
 
 import numpy as np
 
-from .chunking import EMBED_MODEL, Chunk, chunk_documents
+from .chunking import EMBED_MODEL, EMBED_REVISION, Chunk, chunk_documents
 from .config import CACHE_DIR
 from .ingest import load_documents
 
@@ -62,7 +62,7 @@ class Embedder:
     def model(self):
         from sentence_transformers import SentenceTransformer
 
-        return SentenceTransformer(self.model_name)
+        return SentenceTransformer(self.model_name, revision=EMBED_REVISION if self.model_name == EMBED_MODEL else None)
 
     def encode(self, texts: list[str]) -> np.ndarray:
         vecs = self.model.encode(texts, batch_size=64, normalize_embeddings=True, show_progress_bar=False)
@@ -111,8 +111,9 @@ class Retriever:
         return self.embedder.encode_chunks(self.chunks)
 
     def dense_scores(self, query: str) -> np.ndarray:
-        q = self.embedder.encode([query])[0]
-        return self.chunk_vectors @ q
+        if getattr(self, "_last_query", None) != query:  # search() needs these twice; encode the query once
+            self._last_query, self._last_dense = query, self.chunk_vectors @ self.embedder.encode([query])[0]
+        return self._last_dense
 
     def scores(self, query: str) -> np.ndarray:  # one score per chunk
         raise NotImplementedError

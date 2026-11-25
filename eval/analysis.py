@@ -25,7 +25,12 @@ LABELS = {
     "rag__ollama__llama3.1-8b__hybrid__nograde": "relevance check off",
     "rag__ollama__llama3.1-8b__hybrid__verify": "support check: strict",
     "rag__ollama__llama3.1-8b__hybrid__verify-concept": "support check: concept",
+    "rag__ollama__llama3.1-8b__hybrid__nofloor": "similarity floor off",
+    "rag__ollama__llama3.1-8b__hybrid__ctx-small": "less context (3 passages)",
+    "rag__ollama__llama3.1-8b__hybrid__ctx-large": "more context (8 passages)",
     "no_rag__ollama__llama3.1-8b": "Llama, no course",
+    "no_rag__ollama__llama3.1-8b__syllabus": "Llama, no course, sees the syllabus",
+    "no_rag__ollama__llama3.1-8b__syllabus-lenient": "…syllabus, lenient wording",
     "rag__flan__google-flan-t5-base__hybrid": "flan-t5 + course",
     "no_rag__flan__google-flan-t5-base": "flan-t5, no course",
 }
@@ -36,7 +41,21 @@ COMPARE = [  # (a, b): is a different from b?
     (MAIN, "rag__ollama__llama3.1-8b__hybrid__nograde"),
     (MAIN, "rag__ollama__llama3.1-8b__hybrid__verify"),
     (MAIN, "rag__ollama__llama3.1-8b__hybrid__verify-concept"),
+    (MAIN, "rag__ollama__llama3.1-8b__hybrid__nofloor"),
+    (MAIN, "rag__ollama__llama3.1-8b__hybrid__ctx-small"),
+    (MAIN, "rag__ollama__llama3.1-8b__hybrid__ctx-large"),
+    (MAIN, "no_rag__ollama__llama3.1-8b__syllabus"),
+    (MAIN, "no_rag__ollama__llama3.1-8b__syllabus-lenient"),
 ]
+
+# Course-specific questions (audit idea C2): the expected answer is a fact about THIS course's own material
+# (a particular study, the course's tool choice, a toy example, how a lab is structured), so general ML
+# knowledge cannot produce it. q09, q29 and q38 mention the course but general knowledge answers them.
+# Classified after the results were known, so the audit's own list (which adds q38) is reported as a check.
+COURSE_SPECIFIC = {"q01", "q03", "q34", "q35", "q37"}
+COURSE_SPECIFIC_AUDIT = COURSE_SPECIFIC | {"q38"}
+SPLIT_RUNS = [MAIN, "rag__ollama__llama3.1-8b__dense", "no_rag__ollama__llama3.1-8b", "no_rag__ollama__llama3.1-8b__syllabus",
+              "no_rag__ollama__llama3.1-8b__syllabus-lenient"]
 
 
 def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
@@ -110,6 +129,22 @@ def main() -> None:
         b = {**data[b_run]["hand"], **data[b_run]["abstain"]}
         x, y, p = mcnemar_exact(a, b)
         print(f"| {LABELS[b_run]} | {x} | {y} | {p:.3g} |")
+
+    print("\nCourse-specific vs general-knowledge questions (hand labels). Does the course help beyond course trivia?\n")
+    print("| configuration | general knowledge (33) | course-specific (5) | course-specific, audit's list (6) |")
+    print("|---|---|---|---|")
+    for run, o in data.items():
+        if run not in HAND or run not in SPLIT_RUNS:
+            continue
+        h = o["hand"]
+        cells = [pct(sum(v for q, v in h.items() if keep(q)), sum(1 for q in h if keep(q)))
+                 for keep in (lambda q: q not in COURSE_SPECIFIC, lambda q: q in COURSE_SPECIFIC,
+                              lambda q: q in COURSE_SPECIFIC_AUDIT)]
+        print(f"| {LABELS[run]} | " + " | ".join(cells) + " |")
+    if MAIN in data and "no_rag__ollama__llama3.1-8b" in data:
+        general = lambda o: {q: v for q, v in o["hand"].items() if q not in COURSE_SPECIFIC}
+        x, y, p = mcnemar_exact(general(data[MAIN]), general(data["no_rag__ollama__llama3.1-8b"]))
+        print(f"\nGeneral-knowledge questions only, main vs no course: main wins {x}, loses {y}, exact McNemar p = {p:.3g}")
 
 
 if __name__ == "__main__":

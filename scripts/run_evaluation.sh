@@ -36,7 +36,8 @@ run "Ablation: support check on (concept)"     --backend ollama --systems rag --
 run "Ablation: similarity floor off"           --backend ollama --systems rag --retriever hybrid --no-floor
 run "Ablation: less context (3 passages)"      --backend ollama --systems rag --retriever hybrid --context small
 run "Ablation: more context (8 passages)"      --backend ollama --systems rag --retriever hybrid --context large
-run "Llama, no course, sees the syllabus"      --backend ollama --systems no_rag --syllabus
+run "Llama, no course, sees the syllabus"      --backend ollama --systems no_rag --syllabus strict
+run "…syllabus, lenient wording"              --backend ollama --systems no_rag --syllabus lenient
 run "flan-t5, with and without course"         --backend flan --systems rag,no_rag --retriever hybrid
 run "Judge v2 (with course excerpts), all runs" --rejudge
 

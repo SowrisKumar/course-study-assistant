@@ -28,6 +28,8 @@ from functools import lru_cache
 from .ingest.schema import Document
 
 EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+# Pinned Hugging Face revision, so a fresh clone gets exactly the model all results were produced with.
+EMBED_REVISION = "1110a243fdf4706b3f48f1d95db1a4f5529b4d41"
 MAX_TOKENS = 254  # 256 minus the [CLS] and [SEP] tokens the model adds
 OVERLAP_MAX_TOKENS = 60  # carry the previous chunk's last paragraph if it is at most this long
 
@@ -58,7 +60,7 @@ class Chunk:
 def _tokenizer():
     from transformers import AutoTokenizer
 
-    tok = AutoTokenizer.from_pretrained(EMBED_MODEL)
+    tok = AutoTokenizer.from_pretrained(EMBED_MODEL, revision=EMBED_REVISION)
     tok.model_max_length = 10**9  # we only count tokens; silences the "too long" warning
     return tok
 

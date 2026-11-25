@@ -105,19 +105,9 @@ All run at temperature 0, which we verified gives reproducible answers. Rate lim
 
 **The workflow** (`assistant.py`, LangGraph):
 
-```mermaid
-flowchart TD
-    Q[question] --> R{route}
-    R -->|hi / thanks| C[chitchat]
-    R -->|answer / simplify / quiz| RET[retrieve: top 8 chunks → ≤5 passages]
-    RET --> CHK{relevant? similarity floor + LLM check}
-    CHK -->|no| ABS[abstain: not covered]
-    CHK -->|yes| GEN[generate, citing passages as n]
-    GEN --> CITE[cite: validate + map to lecture/slide]
-    CITE -->|model says not covered| ABS
-    CITE -.->|optional| VER{verify: support check}
-    VER -->|fails| ABS
-```
+![The assistant's workflow](figures/workflow.png)
+
+<sub>Drawn by `docs/figures/make_workflow.py`; an image rather than a mermaid diagram so it survives export to PDF or Word.</sub>
 
 | Node | What it does |
 |---|---|
@@ -127,6 +117,26 @@ flowchart TD
 | generate | Mode-specific prompt: only the passages; cite `[n]` after each fact; reply exactly with the "not covered" sentence if the passages are insufficient. |
 | cite | Citations to passages that weren't shown are dropped and the rest renumbered; code such as `outputs[0]` is left alone. Citations are mapped to labels like "Lecture 9 · Module 9 – Transformer Architecture…, slide 6". Answers with no citation are flagged. |
 | verify | Optional support check, off by default (Section 7). |
+
+**What it looks like.** A real session (`chat -v` shows one trace line per workflow step). [`docs/examples.md`](examples.md) has this one unabridged, plus a declined near-miss and a practice quiz:
+
+```text
+you> Why use sinusoidal positional encoding rather than just adding the position index?
+  · route: mode=answer
+  · retrieve (hybrid): 8 chunks -> 5 passages   [1] Lecture 9, slide 7 (0.58) [2] slide 8 (0.47) ...
+  · check: grader says relevant=[1, 2, 4]
+  · generate (ollama/llama3.1:8b, 14.6s)
+  · cite: 2 source(s) cited
+
+We should be careful about how we encode the positions, as simply adding the position index can result in
+large values that might interfere with the token embedding [1]. Using sinusoidal positional encoding addresses
+this problem and conserves relative distances between positions [1]. This encoding scheme keeps the dimension
+fixed and never runs out of encodings, no matter how long the context [2].
+
+Sources:
+[1] Lecture 9 · Module 9 – Transformer Architecture and Advanced GAN, slide 7
+[2] Lecture 9 · Module 9 – Transformer Architecture and Advanced GAN, slide 8
+```
 
 Try it: `uv run python -m study_assistant.chat -v`.
 

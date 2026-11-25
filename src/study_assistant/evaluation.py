@@ -56,6 +56,20 @@ Course outline:
 {{outline}}"""
 
 
+# A lenient wording of the same idea: the strict one above made Llama 3.1 8B refuse 32 of the 38 covered
+# questions, even ones whose topic is in the outline (GRU, Bayes, hallucinations...). Helping the baseline
+# is the conservative direction, so both are reported.
+SYLLABUS_LENIENT_SYSTEM = f"""You are a study assistant for the university course Applied Generative AI.
+Answer the student's question clearly and concisely (at most about 150 words).
+Below is the course outline (each lecture or lab, then its slide and notebook section titles). Section titles are
+short, so a question can be covered even if its exact words don't appear: answer if the question's topic, or a
+closely related one, is in the outline. Only if the question is clearly outside this course, reply exactly:
+"{prompts.NOT_COVERED}"
+
+Course outline:
+{{outline}}"""
+
+
 @lru_cache(maxsize=1)
 def course_outline() -> str:
     """A syllabus built from the knowledge base: each deck / notebook / PDF title with its section titles.
@@ -78,8 +92,10 @@ def course_outline() -> str:
     return "\n".join(lines)
 
 
-def answer_without_course(llm: LLM, question: str, syllabus: bool = False) -> dict:
-    system = SYLLABUS_SYSTEM.format(outline=course_outline()) if syllabus else BASELINE_SYSTEM
+def answer_without_course(llm: LLM, question: str, syllabus: str | None = None) -> dict:
+    """syllabus: None (plain baseline), "strict" or "lenient" (the baseline also sees the course outline)."""
+    template = {"strict": SYLLABUS_SYSTEM, "lenient": SYLLABUS_LENIENT_SYSTEM}.get(syllabus)
+    system = template.format(outline=course_outline()) if template else BASELINE_SYSTEM
     r = llm.generate(question, system=system, max_tokens=400)
     abstained = is_refusal(r.text)
     return {"answer": prompts.NOT_COVERED if abstained else r.text, "abstained": abstained,
@@ -251,7 +267,7 @@ class RunConfig:
     model: str
     retriever: str | None = None
     variant: str | None = None  # ablations: "nograde", "verify", "verify-concept", "nofloor", "ctx-small", "ctx-large";
-    #                            no-RAG: "syllabus" (baseline sees the course outline)
+    #                            no-RAG: "syllabus" / "syllabus-lenient" (baseline sees the course outline)
 
     @property
     def name(self) -> str:
@@ -273,7 +289,8 @@ def run(config: RunConfig, llm: LLM, questions: list[dict], *, bot=None, judge_l
         rec = results.get(q["id"])
         if rec is None:
             res = (answer_with_course(bot, q["question"]) if config.system == "rag"
-                   else answer_without_course(llm, q["question"], syllabus=config.variant == "syllabus"))
+                   else answer_without_course(llm, q["question"], syllabus={"syllabus": "strict",
+                                                                       "syllabus-lenient": "lenient"}.get(config.variant)))
             rec = {"id": q["id"], "type": q["type"], "question": q["question"], **config.__dict__, "run": config.name, **res}
         if q["type"] != "out_of_scope" and not rec["abstained"]:
             rec["key_fact_recall"] = key_fact_recall(rec["answer"], q["key_facts"])
@@ -354,7 +371,8 @@ def main() -> None:
     p.add_argument("--context", choices=["small", "large"],
                    help="passages shown to the model (ablation): small = 4 chunks / 3 passages, large = 16 / 8 "
                         "(default 8 / 5)")
-    p.add_argument("--syllabus", action="store_true", help="no-RAG baseline also sees the course outline")
+    p.add_argument("--syllabus", nargs="?", const="strict", choices=["strict", "lenient"],
+                   help="no-RAG baseline also sees the course outline (bare --syllabus = strict)")
     p.add_argument("--judge", default="ollama", help="backend for LLM-as-judge ('none' to skip)")
     p.add_argument("--limit", type=int, help="only the first N questions (smoke test)")
     p.add_argument("--out", type=Path, default=RESULTS_DIR)
@@ -386,7 +404,7 @@ def main() -> None:
                 bot = StudyAssistant(llm, build_retriever(retriever), grading=grading, verify=args.verify,
                                      k=k, max_passages=max_passages, **extra)
             elif args.syllabus:
-                variant = "syllabus"
+                variant = {"strict": "syllabus", "lenient": "syllabus-lenient"}[args.syllabus]
             run(RunConfig(system, args.backend, llm.model, retriever, variant), llm, questions, bot=bot,
                 judge_llm=judge_llm, out_dir=args.out)
 
