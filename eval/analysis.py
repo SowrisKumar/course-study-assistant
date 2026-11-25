@@ -1,8 +1,11 @@
 """Hand-corrected scores, 95% confidence intervals and paired significance tests for the saved runs.
 
-    uv run python eval/analysis.py
+    uv run python eval/analysis.py                          # the run reported in docs/report.md
+    uv run python eval/analysis.py --results eval/runs/X    # any other run (e.g. a fresh reproduction)
 
-Reads eval/results/*.jsonl (written by scripts/run_evaluation.sh) and eval/hand_labels.json.
+Reads the result files and eval/hand_labels.json. A hand label is applied only to the exact answer it was
+made for (answer hash), so for a fresh run, changed answers fall back to the automatic metric (reported).
+"hand" counts borderline labels as correct; "strict" counts them as not correct.
 With 38 answerable and 12 not-covered questions every rate is uncertain by several points, so we
 report Wilson 95% intervals, and compare systems with an exact McNemar test (both systems answered
 the same questions, so only the questions where they disagree carry information).
@@ -10,14 +13,17 @@ the same questions, so only the questions where they disagree carry information)
 
 from __future__ import annotations
 
+import argparse
 import json
 from math import comb, sqrt
 from pathlib import Path
 
+from study_assistant.hand_labels import answer_hash, correct, load_hand_labels, lookup
+
 HERE = Path(__file__).parent
 RESULTS = HERE / "results"
 QUESTIONS = {json.loads(line)["id"]: json.loads(line) for line in open(HERE / "questions.jsonl") if line.strip()}
-HAND = {k: v for k, v in json.loads((HERE / "hand_labels.json").read_text()).items() if not k.startswith("_")}
+HAND = load_hand_labels(HERE / "hand_labels.json")
 
 LABELS = {
     "rag__ollama__llama3.1-8b__hybrid": "Llama + course, hybrid (main)",
@@ -82,19 +88,23 @@ def auto_correct(rec: dict) -> bool:
     return not rec["abstained"] and rec.get("judge2_score") == 2 and (rec.get("key_fact_recall") or 0) >= 0.5
 
 
-def outcomes(run: str) -> dict[str, dict[str, bool]] | None:
-    path = RESULTS / f"{run}.jsonl"
+def outcomes(run: str, results: Path = RESULTS) -> dict | None:
+    path = results / f"{run}.jsonl"
     if not path.exists():
         return None
     recs = {json.loads(line)["id"]: json.loads(line) for line in open(path) if line.strip()}
-    hand = HAND.get(run, {})
-    out = {"auto": {}, "hand": {}, "abstain": {}}
+    out = {"auto": {}, "hand": {}, "strict": {}, "abstain": {}, "stale": []}
     for qid, rec in recs.items():
         if QUESTIONS[qid]["type"] == "out_of_scope":
             out["abstain"][qid] = rec["abstained"]
-        else:
-            out["auto"][qid] = auto_correct(rec)
-            out["hand"][qid] = hand[qid][0] == "correct" if qid in hand else out["auto"][qid]
+            continue
+        auto = auto_correct(rec)
+        label = lookup(HAND, run, qid, rec["answer"])
+        if label is None and qid in HAND.get(run, {}):
+            out["stale"].append(qid)  # labelled, but this answer differs from the one we judged
+        out["auto"][qid] = auto
+        out["hand"][qid] = correct(auto, label)
+        out["strict"][qid] = correct(auto, label, strict=True)
     return out
 
 
@@ -105,30 +115,44 @@ def pct(k: int, n: int) -> str:
     return f"{k}/{n} = {k / n:.0%} [{lo:.0%}–{hi:.0%}]"
 
 
-def main() -> None:
-    data = {run: o for run in LABELS if (o := outcomes(run)) is not None}
-    print("Answerable questions correct (auto = main metric; hand = after re-reading, eval/hand_labels.json),")
-    print("and not-covered questions abstained. 95% Wilson intervals in brackets.\n")
-    print(f"| configuration | correct (auto) | correct (hand) | not covered → abstained | all 50 handled (hand) |")
-    print("|---|---|---|---|---|")
+def main(argv: list[str] | None = None) -> None:
+    p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    p.add_argument("--results", type=Path, default=RESULTS, help="folder with the run's result files")
+    results = p.parse_args(argv).results
+    data = {run: o for run in LABELS if (o := outcomes(run, results)) is not None}
+    shown = results.resolve().relative_to(HERE.parent.resolve()) if results.resolve().is_relative_to(HERE.parent.resolve()) else results.name
+    print(f"Results: {shown}\n")
+    print("Answerable questions correct (auto = main metric; hand = after re-reading, eval/hand_labels.json;")
+    print("strict = hand, but borderline answers counted as not correct), and not-covered questions abstained.")
+    print("95% Wilson intervals in brackets.\n")
+    print("| configuration | correct (auto) | correct (hand) | correct (strict) | not covered → abstained | all 50 handled (hand) |")
+    print("|---|---|---|---|---|---|")
     for run, o in data.items():
-        a, h, ab = o["auto"], o["hand"], o["abstain"]
-        handled = sum(h.values()) + sum(ab.values())
-        hand_cell = pct(sum(h.values()), len(h)) if run in HAND else "not re-checked"
-        all_cell = pct(handled, len(h) + len(ab)) if run in HAND else "—"
-        print(f"| {LABELS[run]} | {pct(sum(a.values()), len(a))} | {hand_cell} | {pct(sum(ab.values()), len(ab))} | {all_cell} |")
+        a, h, st, ab = o["auto"], o["hand"], o["strict"], o["abstain"]
+        checked = run in HAND
+        hand_cell = pct(sum(h.values()), len(h)) if checked else "not re-checked"
+        strict_cell = pct(sum(st.values()), len(st)) if checked else "—"
+        all_cell = pct(sum(h.values()) + sum(ab.values()), len(h) + len(ab)) if checked else "—"
+        print(f"| {LABELS[run]} | {pct(sum(a.values()), len(a))} | {hand_cell} | {strict_cell} "
+              f"| {pct(sum(ab.values()), len(ab))} | {all_cell} |")
+    stale = {LABELS[r]: o["stale"] for r, o in data.items() if o["stale"]}
+    if stale:
+        print(f"\nWARNING: answers changed since hand-labelling, automatic verdict used instead: {stale}")
 
     print("\nPaired comparisons with the main system (exact McNemar test, hand labels; all 50 questions:")
     print("an answerable question counts if answered correctly, a not-covered one if the system abstained).\n")
-    print("| main vs | main right, other wrong | main wrong, other right | p |")
-    print("|---|---|---|---|")
+    print("| main vs | main right, other wrong | main wrong, other right | p | strict reading: wins / losses, p |")
+    print("|---|---|---|---|---|")
     for a_run, b_run in COMPARE:
         if a_run not in data or b_run not in data or b_run not in HAND:
             continue
         a = {**data[a_run]["hand"], **data[a_run]["abstain"]}
         b = {**data[b_run]["hand"], **data[b_run]["abstain"]}
         x, y, p = mcnemar_exact(a, b)
-        print(f"| {LABELS[b_run]} | {x} | {y} | {p:.3g} |")
+        sa = {**data[a_run]["strict"], **data[a_run]["abstain"]}
+        sb = {**data[b_run]["strict"], **data[b_run]["abstain"]}
+        sx, sy, sp = mcnemar_exact(sa, sb)
+        print(f"| {LABELS[b_run]} | {x} | {y} | {p:.3g} | {sx} / {sy}, p = {sp:.3g} |")
 
     print("\nCourse-specific vs general-knowledge questions (hand labels). Does the course help beyond course trivia?\n")
     print("| configuration | general knowledge (33) | course-specific (5) | course-specific, audit's list (6) |")
@@ -145,6 +169,9 @@ def main() -> None:
         general = lambda o: {q: v for q, v in o["hand"].items() if q not in COURSE_SPECIFIC}
         x, y, p = mcnemar_exact(general(data[MAIN]), general(data["no_rag__ollama__llama3.1-8b"]))
         print(f"\nGeneral-knowledge questions only, main vs no course: main wins {x}, loses {y}, exact McNemar p = {p:.3g}")
+        general_strict = lambda o: {q: v for q, v in o["strict"].items() if q not in COURSE_SPECIFIC}
+        x, y, p = mcnemar_exact(general_strict(data[MAIN]), general_strict(data["no_rag__ollama__llama3.1-8b"]))
+        print(f"Same, strict reading: main wins {x}, loses {y}, exact McNemar p = {p:.3g}")
 
 
 if __name__ == "__main__":

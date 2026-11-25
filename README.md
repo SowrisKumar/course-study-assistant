@@ -12,12 +12,12 @@ Team: Sowris Kumar Sripathy, Alfonso Garcia. Original proposal: [`docs/proposal.
 
 | | Assistant (Llama + course) | Same Llama, no course |
 |---|---|---|
-| Answers covered questions correctly (by hand) | **97%** (37/38) | 61% |
+| Answers covered questions correctly (by hand) | **97%** (37/38); 92% on a strict reading | 61% |
 | Cites the right lecture | **97%** | – |
 | Says "not covered" when it isn't | **100%** (12/12) | 33% |
 | …for topics that sound like the course (PPO, DPO, FID…) | **100%** (10/10) | 20% |
 
-The gap isn't just course trivia: on the 33 general-knowledge questions it is 97% vs 70%. Giving the plain model the course syllabus doesn't close it either; it just trades wrong answers for refusals. Example sessions: [`docs/examples.md`](docs/examples.md).
+The gap isn't just course trivia: on the 33 general-knowledge questions it is 97% vs 70% (91% vs 70% on a strict reading). Giving the plain model the course syllabus doesn't close it either; it just trades wrong answers for refusals. Example sessions: [`docs/examples.md`](docs/examples.md).
 
 ## Try it
 
@@ -86,8 +86,10 @@ uv run python -m study_assistant.llm -b ollama "What is a GAN?"
 ### Reproducing the evaluation
 
 ```bash
-./scripts/run_evaluation.sh        # every configuration in the report (~2 h on an M2, needs Ollama + llama3.1:8b)
-uv run python eval/analysis.py     # hand-corrected scores, 95% intervals, McNemar tests
+./scripts/run_evaluation.sh        # re-runs every configuration into a new eval/runs/<date>-<commit>/ folder
+                                   # (~2.5 h on an M2, needs Ollama + llama3.1:8b); eval/results/ is never touched
+uv run python eval/analysis.py     # the reported run: hand-checked and strict scores, 95% intervals, McNemar tests
+uv run python eval/analysis.py --results eval/runs/<folder>   # the same for your own run
 ```
 
 Every run is appended to [`eval/experiment_log.csv`](eval/experiment_log.csv) (one row per build and configuration, with the code version and model digest). [Notebook 06](notebooks/06_experiment_log.ipynb) charts all models and builds side by side.

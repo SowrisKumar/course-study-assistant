@@ -272,7 +272,7 @@ Other errors:
 
 ## Audit and final re-run
 
-After Step 6 we asked for an independent, read-only audit of the whole project (a fresh review that looked for errors in the data, the scoring and the write-up). It found real problems; we fixed them and re-ran every evaluation. All numbers in `docs/report.md` and notebook 05 come from that final run (`eval/results/RUN_INFO.md`).
+After Step 6 we asked an AI model (Claude, in a separate session with no stake in the earlier decisions) for a read-only review of the whole project, looking for errors in the data, the scoring and the write-up. It is an AI-assisted review, not an independent human one. Its findings are summarised in the table below; a second review later found four more problems (see "Second review"). It found real problems; we fixed them and re-ran every evaluation. All numbers in `docs/report.md` and notebook 05 come from that final run (`eval/results/RUN_INFO.md`).
 
 ### What was wrong, and the fix
 | Problem | Fix |
@@ -294,7 +294,7 @@ With 38 + 12 questions we now report 95% Wilson intervals and exact McNemar test
 
 ### Support check, re-assessed
 - **The Step 6 development result was wrong.** It counted every rejected development answer as a correct answer lost. Hand labels (`eval/support_check/dev_labels.json`) show strict rejected 2 correct answers and 1 of the 3 wrong ones; concept rejected all 3 wrong ones and no correct ones. So concept is the better variant, chosen on development data only, and it was added as `verify="concept"`.
-- **On the evaluation set neither helps:** the main system already declines all 12 not-covered questions. Strict rejected one correct answer (q02); concept changed nothing. Both add about 4 s per answer.
+- **On the evaluation set neither helps:** the main system already declines all 12 not-covered questions. Strict rejected q02, a borderline answer (correct on our main reading, wrong on the strict one); concept changed nothing. Both add about 4 s per answer.
 - **Decision: off by default** (the default system is the evaluated one). `chat --verify` uses the concept variant.
 
 ## Making the evaluation stronger (after the audit)
@@ -308,3 +308,15 @@ The audit also listed cheaper ideas to make the results more convincing. We did 
 - **Real sessions in the report** (`docs/examples.md`), the workflow as an image (`docs/figures/make_workflow.py`) so it survives PDF export, the embedding model pinned to a fixed Hugging Face revision, and the query embedded once per search instead of twice.
 
 Still open, and needing people or keys: an independent grader (Gemini key), a second human grader with an agreement score, and Alfonso reviewing the question set.
+
+## Second review
+
+A second AI-assisted review (Claude, separate session) re-checked the finished project. It confirmed the numbers, traces and not-covered labels, and found four problems:
+
+| Problem | Fix |
+|---|---|
+| **The public repo includes the instructor's course text** (`documents.jsonl`, and quotes in saved answers), while the report said only that "the raw course files" don't ship. | The report now says plainly that the extracted text is included. Whether the repo should stay public is a decision for the team and the instructor. |
+| **The reproduce script reproduced nothing.** It wrote to `eval/results/`, so saved answers were reused, `RUN_INFO.md` was overwritten, and the same numbers were logged as a new build. Hand labels would also silently apply to new, different answers. | The script writes to a new `eval/runs/<date>-<commit>/` folder and refuses to reuse results unless `RESUME=1`. `analysis.py --results` analyses any run. Every hand label stores a hash of the answer it judged and applies only to that exact answer (`hand_labels.py`, tested). |
+| **The headline 97% rested on two generous labels** (q02's general definition of an intrinsic hallucination, q29's "truncates the long tail"). | Marked *borderline* wherever they occur. A **strict reading** that counts them as wrong is reported next to every hand-checked number: 92% for the main system, 87% for dense. Course vs no course stays significant (p < 0.001); the general-knowledge-only comparison does not (p = 0.065). |
+| **The first audit was called "independent".** It was an AI review. | Described as an AI-assisted review, with a note on AI use in the report (Section 8). |
+

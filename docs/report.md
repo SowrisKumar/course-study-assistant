@@ -11,17 +11,18 @@ On 50 new evaluation questions (38 the course covers, 12 it doesn't), compared w
 | | With the course materials | Same model, without them |
 |---|---|---|
 | Covered questions answered correctly (checked by hand) | **97%** (37/38) | 61% (23/38) |
+| …on a strict reading of two borderline answers | 92% (35/38) | 61% |
 | …by the automatic metric alone | 95% | 47% |
 | Answers citing the right lecture | **97%** | — |
 | Uncovered questions declined | **100%** (12/12) | 33% (4/12) |
 | …of which topics that *sound* like course content (near-misses + a trap) | **100%** (10/10) | 20% (2/10) |
 
-Over all 50 questions the assistant handled 49 correctly and the plain model 27. The two disagree on 24 questions and the assistant wins 23 of them (exact McNemar test, p < 0.001). With this few questions every rate has a wide interval, e.g. 87–100% for the 97% (Section 6).
+Over all 50 questions the assistant handled 49 correctly and the plain model 27. The two disagree on 24 questions and the assistant wins 23 of them (exact McNemar test, p < 0.001). The 97% gives two borderline answers the benefit of the doubt (Section 6); counting them as wrong gives 92%, and the assistant still wins 22 to 2 (p < 0.001). With this few questions every rate has a wide interval, e.g. 87–100% for the 97% (Section 6).
 
 Four findings matter beyond this project:
 - **An 8B LLM is an unreliable grader**, in both directions. We had to redesign the grading, and still read every failed answer by hand.
 - **Our LLM relevance check did nothing measurable.** It never declined a question; all abstentions came from the answer prompt and a similarity floor. Turning it off gave the same results.
-- **The baseline was not simply set up to lose.** The course helps on general-knowledge questions too (97% vs 70%), and giving the plain model the course syllabus doesn't close the gap: it only trades wrong answers for refusals (Section 6).
+- **The baseline was not simply set up to lose.** The course helps on general-knowledge questions too (97% vs 70%, or 91% vs 70% on the strict reading, where the difference is no longer statistically significant), and giving the plain model the course syllabus doesn't close the gap: it only trades wrong answers for refusals (Section 6).
 - **A post-hoc support check found nothing left to catch on the evaluation set** (Section 7). Our first assessment of its two variants was wrong until we labelled the development answers by hand.
 
 ---
@@ -66,9 +67,9 @@ We turned 48 course files into **538 documents**, each a natural unit with citat
 - **pypdf removed spaces in code** (`importtorch.nnasnn`), so we switched to PyMuPDF.
 - **Position-based reading order** was needed to keep each code listing next to its heading.
 - **43 title and section-divider slides** are flagged and kept out of the index, so they don't out-rank the slides that explain the topic.
-- **The extended Lecture 11 deck was missing at first.** An independent audit of the project found it. It matters: it names PPO, which one of our "not covered" questions had asked about (Section 6).
+- **The extended Lecture 11 deck was missing at first.** An AI-assisted review of the project (see the note on AI use, Section 8) found it. It matters: it names PPO, which one of our "not covered" questions had asked about (Section 6).
 
-The knowledge base ships with the repo (`data/processed/documents.jsonl`); the raw course files do not.
+The repo does not include the original course files (slides, notebooks, PDFs), but it **does include their extracted text** (`data/processed/documents.jsonl`, and quotations of it in the saved answers under `eval/results/`), so that the project runs from a clone. That text is the instructor's material; whether the repository should be public is a question for the instructor.
 
 **Limitations:**
 - Equations and diagrams that are images are lost (e.g. the VAE loss formula).
@@ -178,7 +179,9 @@ Those checks caught mistakes in our own drafts. After the audit we also replaced
 - **So the main metric requires both** the grader's verdict *and* at least half the key facts.
 - **This metric was designed after we had seen first results**, so it is not a pre-registered measure. We report all three versions side by side below.
 
-**Hand check.** The grader was also inconsistent: two nearly identical answers to q02 (hybrid and dense runs) scored 2 and 1. So we re-read, against the reference and the lecture, **every answer the main metric marked as not correct**, for all Llama configurations. We also re-read all answers it marked correct for the main system and the no-course baseline; none of those were overturned. Every verdict and its reason is in `eval/hand_labels.json`. We are the system's developers, so this check is not blind.
+**Hand check.** The grader was also inconsistent: two nearly identical answers to q02 (hybrid and dense runs) scored 2 and 1. So we re-read, against the reference and the lecture, **every answer the main metric marked as not correct**, for all Llama configurations. We also re-read all answers it marked correct for the main system and the no-course baseline; none of those were overturned. Every verdict and its reason is in `eval/hand_labels.json`, tied to a hash of the exact answer it judged, so a re-run never inherits old verdicts. We are the system's developers, so this check is not blind.
+
+**Two borderline answers.** We gave two of the main system's answers the benefit of the doubt. For q02 it uses the general definition of an intrinsic hallucination ("unfaithful to the source") rather than the course's ("wrongly summarises the source"). For q29 it repeats the practical's line that top-k "truncates the long tail", but never says that sampling is limited to the k most likely tokens. The same answers in the other configurations are treated the same way. The **strict reading** counts them as wrong; both readings are reported below. A blind second labeller would settle these better than we can.
 
 ### Results
 
@@ -187,6 +190,7 @@ Those checks caught mistakes in our own drafts. After the audit we also replaced
 | | Llama + course (hybrid) | Llama + course (dense) | Llama, no course | flan-t5 + course | flan-t5, no course |
 |---|---|---|---|---|---|
 | **Correct, checked by hand** | **97%** | 92% | 61% | — | — |
+| Correct, strict reading (borderline = wrong) | 92% | 87% | 61% | — | — |
 | Correct, main metric (v2 + key facts) | 95% | 79% | 47% | 24% | 0% |
 | Correct, judge v2 alone | 100% | 84% | 58% | 55% | 13% |
 | Correct, judge v1 alone | 82% | 71% | 45% | 16% | 0% |
@@ -244,7 +248,7 @@ Two checks.
 | Llama + course | **97%** | **100%** |
 | Llama, no course | 70% | 0% |
 
-The course helps on general questions too (10 wins, 1 loss, p = 0.012), so the gap is not just course trivia. We chose the five after seeing results; the audit's own list, which adds q38, gives the same picture.
+The course helps on general questions too (10 wins, 1 loss, p = 0.012). On the strict reading it is 91% vs 70% with 9 wins and 2 losses, p = 0.065: still a large gap, but no longer statistically significant with 33 questions. We chose the five after seeing results; the audit's own list, which adds q38, gives the same picture.
 
 **2. Give the plain model the syllabus,** so it can judge what the course covers:
 
@@ -286,7 +290,7 @@ So concept is the better variant, chosen on development data only. Both were the
 | | Correct (hand) | Not covered → declined | Seconds / question | Changes vs main system |
 |---|---|---|---|---|
 | Main system (no check) | 97% | 100% | 14 | — |
-| strict | 95% | 100% | 18 | rejected 1 correct answer (q02) |
+| strict | 95% | 100% | 18 | rejected q02, a borderline answer (correct on our main reading, not on the strict one) |
 | concept | 97% | 100% | 18 | none |
 
 **Reading it.**
@@ -298,12 +302,19 @@ So concept is the better variant, chosen on development data only. Both were the
 
 - **Small test set:** 38 + 12 questions, so one question moves a score by 2.6 / 8 points, and only large differences (course vs no course) are statistically clear.
 - **The grader is the same 8B model as the answerer.** It is noisy, hence the combined metric and the hand check. A stronger, independent grader (Gemini or GPT; both are supported by the code) would make the numbers more trustworthy.
-- **The main metric and the hand check were designed after seeing results,** and the hand labels were made by the developers, not blind.
+- **The main metric and the hand check were designed after seeing results,** and the hand labels were made by the developers, not blind. Two borderline labels move the headline from 92% to 97%; both readings are reported.
 - **Hybrid retrieval was selected on the evaluation set.**
 - **The paraphrased evaluation questions were easier** than the development ones.
 - **The questions and reference answers were drafted with AI assistance** and checked automatically against the course text, but not yet reviewed by a second person. Alfonso reviewing `eval/QUESTIONS.md` is the next step.
 - **Image-only content (equations, diagrams) is not in the knowledge base.**
 - **Speed:** about 14 s per answer on a laptop with a local 8B model. A cloud model would be faster and likely more accurate, at a cost.
+
+**Note on AI use.** We built this project with AI assistance, and we disclose it:
+- **Development:** an AI coding assistant (Claude, via Claude Code) wrote much of the code, the first drafts of the evaluation questions and reference answers, the notebooks and this write-up, working step by step under our direction.
+- **Reviews:** the project was reviewed twice by Claude in separate sessions. These were AI-assisted reviews, not independent human audits. Their findings and our fixes are summarised in `docs/design.md` ("Audit and final re-run", "Second review").
+- **In the system and its evaluation:** Llama 3.1 8B answers the questions and also grades them (LLM-as-judge).
+
+The hand labels in `eval/hand_labels.json` were produced in the same AI-assisted way and have not yet been checked by a second, independent person.
 
 ## 9. How to run
 

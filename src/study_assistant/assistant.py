@@ -50,7 +50,7 @@ DEFAULT_RETRIEVER = "hybrid"
 # passages discuss the specific thing asked about?). On the hand-labelled development set strict rejected
 # 2 correct answers and 1 wrong one; concept rejected the 3 wrong answers and no correct ones. On the
 # evaluation set the main system already declined every not-covered question: concept changed nothing and
-# strict rejected 1 correct answer, each adding ~4 s per answer. So it is off by default (docs/report.md, §7).
+# strict rejected 1 borderline answer (q02), each adding ~4 s per answer. So it is off by default (docs/report.md, §7).
 # Available as StudyAssistant(..., verify="concept") / `chat --verify`.
 DEFAULT_VERIFY: str | None = None
 VERIFY_VARIANTS = ("strict", "concept")

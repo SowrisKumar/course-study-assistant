@@ -24,9 +24,9 @@ import pandas as pd
 
 from .config import PROJECT_ROOT
 from .evaluation import QUESTIONS_PATH, RESULTS_DIR, load_results, summarize
+from .hand_labels import correct, load_hand_labels, lookup
 
 LOG_PATH = PROJECT_ROOT / "eval" / "experiment_log.csv"
-HAND_LABELS_PATH = PROJECT_ROOT / "eval" / "hand_labels.json"
 
 METRICS = {  # summarize() column -> log column
     "correct (main)": "correct_main",
@@ -40,7 +40,7 @@ METRICS = {  # summarize() column -> log column
     "sec / question": "sec_per_question",
 }
 COLUMNS = ["build", "logged_at", "commit", "kb_documents", "questions_hash", "model_digest", "run", "system",
-           "backend", "model", "retriever", "variant", "n_answerable", "n_not_covered", "correct_hand",
+           "backend", "model", "retriever", "variant", "n_answerable", "n_not_covered", "correct_hand", "correct_hand_strict",
            *METRICS.values(), "near_miss_declined", "notes"]
 
 
@@ -65,16 +65,17 @@ def _kb_documents() -> int:
     return len(load_documents())
 
 
-def hand_corrected(results: pd.DataFrame, labels: dict) -> dict[str, float]:
+def hand_corrected(results: pd.DataFrame, labels: dict, strict: bool = False) -> dict[str, float]:
     """Share of answerable questions correct after the hand check, for runs that have hand labels.
 
-    Answers without a hand label keep the main metric's verdict (see eval/hand_labels.json)."""
+    Answers without a matching hand label (none, or the answer changed since labelling) keep the main
+    metric's verdict; strict=True counts borderline answers as not correct (see eval/hand_labels.json)."""
     out = {}
     for run, g in results[results.type != "out_of_scope"].groupby("run"):
         if run not in labels:
             continue
         auto = (~g.abstained) & (g.judge2_score == 2) & (g.key_fact_recall.fillna(0) >= 0.5)
-        hand = [labels[run][i][0] == "correct" if i in labels[run] else bool(a) for i, a in zip(g.id, auto)]
+        hand = [correct(bool(a), lookup(labels, run, i, ans), strict=strict) for i, a, ans in zip(g.id, auto, g.answer)]
         out[run] = round(sum(hand) / len(hand), 3)
     return out
 
@@ -90,8 +91,8 @@ def record(build: str, results_dir: Path = RESULTS_DIR, *, runs: list[str] | Non
         raise SystemExit(f"no results in {results_dir}")
     questions = [json.loads(line) for line in questions_path.read_text().splitlines() if line.strip()]
     near_miss = {q["id"] for q in questions if q["type"] == "out_of_scope" and q["source"].startswith(("near-miss", "trap"))}
-    labels = {k: v for k, v in json.loads(hand_labels.read_text()).items() if not k.startswith("_")} if hand_labels else {}
-    hand = hand_corrected(results, labels)
+    labels = load_hand_labels(hand_labels) if hand_labels else {}
+    hand, hand_strict = hand_corrected(results, labels), hand_corrected(results, labels, strict=True)
     summary = summarize(results)
     meta = {
         "build": build,
@@ -111,14 +112,15 @@ def record(build: str, results_dir: Path = RESULTS_DIR, *, runs: list[str] | Non
             **meta, "run": run, "system": first.system, "backend": first.backend, "model": first.model,
             "retriever": first.get("retriever") or "", "variant": first.get("variant") or "",
             "n_answerable": int((g.type != "out_of_scope").sum()), "n_not_covered": len(oos),
-            "correct_hand": hand.get(run),
+            "correct_hand": hand.get(run), "correct_hand_strict": hand_strict.get(run),
             **{col: summary.loc[run, name] for name, col in METRICS.items()},
             "near_miss_declined": round(nm.abstained.mean(), 3) if len(nm) else None,
         })
         if first.backend != "ollama":
             rows[-1]["model_digest"] = ""
     new = pd.DataFrame(rows, columns=COLUMNS)
-    log = pd.read_csv(log_path, dtype=str) if log_path.exists() else pd.DataFrame(columns=COLUMNS)
+    log = pd.read_csv(log_path, dtype=str, keep_default_na=False).reindex(columns=COLUMNS, fill_value="") \
+        if log_path.exists() else pd.DataFrame(columns=COLUMNS)
     log = log[~(log.build.isin(new.build) & log.run.isin(new.run))]
     pd.concat([log, new.astype(str).replace({"None": "", "nan": ""})], ignore_index=True)[COLUMNS].to_csv(log_path, index=False)
     return new

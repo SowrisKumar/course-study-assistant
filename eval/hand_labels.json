@@ -1,313 +1,489 @@
 {
   "_about": [
-    "Hand verdicts on answerable questions, for the Llama 3.1 8B runs in eval/results/ (code 91cc6b3 / c026e50).",
-    "Every answer the main metric marked NOT correct was re-read against the reference and the gold lecture and is listed here.",
-    "All answers the main metric marked correct were also re-read for the hybrid and no-course runs; none were overturned.",
-    "Answers not listed keep the main metric's verdict (correct). 'partial' counts as not correct.",
+    "Hand verdicts on answerable questions for the Llama 3.1 8B runs in eval/results/.",
+    "Each label applies only to the exact answer it was made for (answer_sha1 = first 12 hex chars of sha1 of the stripped answer); if a re-run changes the answer, the label is ignored and the automatic verdict is used.",
+    "Every answer the main metric marked NOT correct was re-read against the reference and the gold lecture. All passes were also re-read for the main system, the no-course baseline and both syllabus baselines.",
+    "Answers not listed keep the main metric's verdict. 'partial' counts as not correct.",
     "Rule: correct = states the reference's main point(s) and nothing clearly wrong about them; extra detail is fine.",
-    "Labelled by the assistant's developers (not blind to the system); see docs/report.md, Threats to validity.",
-    "For the syllabus baselines every answered covered question was read (passes included); refusals count as wrong."
+    "borderline = we gave the answer the benefit of the doubt; the strict reading counts these as not correct. q02 (general 'unfaithful to the source' definition, not the course's 'wrongly summarised') and q29 (only 'truncates the long tail', never 'only the k most likely') are borderline in every system where they occur, as are the syllabus baselines' q03 install methods.",
+    "Labelled by the developers, not blind to the system; see docs/report.md, Limitations."
   ],
   "rag__ollama__llama3.1-8b__hybrid": {
-    "q19": [
-      "partial",
-      "says to condition on the label but never mentions one-hot labels or giving the critic the labels"
-    ],
-    "q29": [
-      "correct",
-      "'truncates the long tail before sampling' = keep only the k most likely; key-fact wording too strict"
-    ]
+    "q19": {
+      "verdict": "partial",
+      "why": "says to condition on the label but never mentions one-hot labels or giving the critic the labels",
+      "answer_sha1": "81c42ed7fa29",
+      "borderline": false
+    },
+    "q29": {
+      "verdict": "correct",
+      "why": "'truncates the long tail before sampling' = keep only the k most likely; key-fact wording too strict; borderline: repeats the exercise's 'truncates the long tail of garbage words'; never says sampling is limited to the k most likely tokens (key-fact recall 0)",
+      "answer_sha1": "424fa7211d4f",
+      "borderline": true
+    },
+    "q02": {
+      "verdict": "correct",
+      "why": "borderline: general definition ('unfaithful to the provided source', 'not based on training data') rather than the course's 'contradicts / wrongly summarises the source'; earns the key fact via 'unfaithful'",
+      "answer_sha1": "618867af47da",
+      "borderline": true
+    }
   },
   "rag__ollama__llama3.1-8b__dense": {
-    "q02": [
-      "correct",
-      "same definitions as the hybrid answer (judge v2 gave that one 2)"
-    ],
-    "q11": [
-      "partial",
-      "wrongly says reshape might copy 'even if the memory is contiguous'"
-    ],
-    "q17": [
-      "wrong",
-      "false refusal"
-    ],
-    "q20": [
-      "correct",
-      "change of variables to a Gaussian with a neural network: the core idea asked for"
-    ],
-    "q27": [
-      "correct",
-      "-inf before softmax blocks future positions; judge v2 complaint is wrong"
-    ],
-    "q29": [
-      "correct",
-      "same content as hybrid q29 (citation marker lost: 'According to passage ,')"
-    ],
-    "q30": [
-      "wrong",
-      "false refusal"
-    ],
-    "q35": [
-      "correct",
-      "lists all four tiers exactly; judge v2 complaint is wrong"
-    ]
+    "q02": {
+      "verdict": "correct",
+      "why": "same definitions as the hybrid answer (judge v2 gave that one 2); borderline: general definition ('unfaithful to the provided source', 'not based on training data') rather than the course's 'contradicts / wrongly summarises the source'; earns the key fact via 'unfaithful'",
+      "answer_sha1": "a1f0076f05f8",
+      "borderline": true
+    },
+    "q11": {
+      "verdict": "partial",
+      "why": "wrongly says reshape might copy 'even if the memory is contiguous'",
+      "answer_sha1": "a66234b44bb7",
+      "borderline": false
+    },
+    "q17": {
+      "verdict": "wrong",
+      "why": "false refusal",
+      "answer_sha1": "c6ccf82f179a",
+      "borderline": false
+    },
+    "q20": {
+      "verdict": "correct",
+      "why": "change of variables to a Gaussian with a neural network: the core idea asked for",
+      "answer_sha1": "4b32f7ffe8c3",
+      "borderline": false
+    },
+    "q27": {
+      "verdict": "correct",
+      "why": "-inf before softmax blocks future positions; judge v2 complaint is wrong",
+      "answer_sha1": "3d924b7bbdd2",
+      "borderline": false
+    },
+    "q29": {
+      "verdict": "correct",
+      "why": "same content as hybrid q29 (citation marker lost: 'According to passage ,'); borderline: repeats the exercise's 'truncates the long tail of garbage words'; never says sampling is limited to the k most likely tokens (key-fact recall 0)",
+      "answer_sha1": "96a00eeac4b8",
+      "borderline": true
+    },
+    "q30": {
+      "verdict": "wrong",
+      "why": "false refusal",
+      "answer_sha1": "c6ccf82f179a",
+      "borderline": false
+    },
+    "q35": {
+      "verdict": "correct",
+      "why": "lists all four tiers exactly; judge v2 complaint is wrong",
+      "answer_sha1": "c9cfe88e2d4b",
+      "borderline": false
+    }
   },
   "rag__ollama__llama3.1-8b__hybrid__nograde": {
-    "q15": [
-      "wrong",
-      "'Upsampling Layer' instead of transposed convolution"
-    ]
+    "q15": {
+      "verdict": "wrong",
+      "why": "'Upsampling Layer' instead of transposed convolution",
+      "answer_sha1": "01f8279a4b10",
+      "borderline": false
+    },
+    "q02": {
+      "verdict": "correct",
+      "why": "borderline: general definition ('unfaithful to the provided source', 'not based on training data') rather than the course's 'contradicts / wrongly summarises the source'; earns the key fact via 'unfaithful'",
+      "answer_sha1": "6e6f05f9bdb2",
+      "borderline": true
+    }
   },
   "rag__ollama__llama3.1-8b__hybrid__verify": {
-    "q02": [
-      "wrong",
-      "false refusal by the strict support check"
-    ],
-    "q19": [
-      "partial",
-      "same answer as hybrid q19"
-    ],
-    "q29": [
-      "correct",
-      "same answer as hybrid q29"
-    ]
+    "q02": {
+      "verdict": "wrong",
+      "why": "false refusal by the strict support check",
+      "answer_sha1": "c6ccf82f179a",
+      "borderline": false
+    },
+    "q19": {
+      "verdict": "partial",
+      "why": "same answer as hybrid q19",
+      "answer_sha1": "81c42ed7fa29",
+      "borderline": false
+    },
+    "q29": {
+      "verdict": "correct",
+      "why": "same answer as hybrid q29; borderline: repeats the exercise's 'truncates the long tail of garbage words'; never says sampling is limited to the k most likely tokens (key-fact recall 0)",
+      "answer_sha1": "424fa7211d4f",
+      "borderline": true
+    }
   },
   "no_rag__ollama__llama3.1-8b": {
-    "q01": [
-      "wrong",
-      "refused"
-    ],
-    "q02": [
-      "wrong",
-      "wrong definitions (intrinsic = plausible extension of the input)"
-    ],
-    "q03": [
-      "wrong",
-      "says Conda; the course uses uv"
-    ],
-    "q05": [
-      "correct",
-      "high cost and no semantic relationships; judge too harsh"
-    ],
-    "q06": [
-      "wrong",
-      "Kalman filter instead of Bayes' theorem"
-    ],
-    "q07": [
-      "correct",
-      "no / one / a few examples; key-fact wording too strict"
-    ],
-    "q08": [
-      "partial",
-      "generic 'multiple models'; no retrievers, tools or real-time retrieval"
-    ],
-    "q09": [
-      "correct",
-      "bias, misinformation, intellectual property"
-    ],
-    "q12": [
-      "correct",
-      "MSE and cross-entropy (plus extras)"
-    ],
-    "q21": [
-      "partial",
-      "never mentions normalisation / integrating to 1"
-    ],
-    "q22": [
-      "partial",
-      "names contrastive divergence but defines it wrongly"
-    ],
-    "q23": [
-      "correct",
-      "U-Net; noisy sample and noise level"
-    ],
-    "q24": [
-      "partial",
-      "describes refinement steps, not how the noise parameter varies per step"
-    ],
-    "q25": [
-      "partial",
-      "no mention of large values interfering or bounded/relative distances"
-    ],
-    "q28": [
-      "partial",
-      "'focus on regions', not longer-range patterns lost in convolutions"
-    ],
-    "q33": [
-      "partial",
-      "generic fine-tuning; no human-written prompt-response demonstrations or instruction following"
-    ],
-    "q34": [
-      "wrong",
-      "says self-supervised learning; the course example is RL with rule-based rewards"
-    ],
-    "q35": [
-      "wrong",
-      "invented tiers"
-    ],
-    "q36": [
-      "wrong",
-      "nodes = words/tokens"
-    ],
-    "q37": [
-      "wrong",
-      "invented 'Recurrent Attention-Generative' stages"
-    ]
+    "q01": {
+      "verdict": "wrong",
+      "why": "refused",
+      "answer_sha1": "c6ccf82f179a",
+      "borderline": false
+    },
+    "q02": {
+      "verdict": "wrong",
+      "why": "wrong definitions (intrinsic = plausible extension of the input)",
+      "answer_sha1": "9bc9b621dccb",
+      "borderline": false
+    },
+    "q03": {
+      "verdict": "wrong",
+      "why": "says Conda; the course uses uv",
+      "answer_sha1": "0d316fd7d15d",
+      "borderline": false
+    },
+    "q05": {
+      "verdict": "correct",
+      "why": "high cost and no semantic relationships; judge too harsh",
+      "answer_sha1": "b3294f6fa589",
+      "borderline": false
+    },
+    "q06": {
+      "verdict": "wrong",
+      "why": "Kalman filter instead of Bayes' theorem",
+      "answer_sha1": "b508e7679508",
+      "borderline": false
+    },
+    "q07": {
+      "verdict": "correct",
+      "why": "no / one / a few examples; key-fact wording too strict",
+      "answer_sha1": "dddfe3a15173",
+      "borderline": false
+    },
+    "q08": {
+      "verdict": "partial",
+      "why": "generic 'multiple models'; no retrievers, tools or real-time retrieval",
+      "answer_sha1": "ba4e360d7ba9",
+      "borderline": false
+    },
+    "q09": {
+      "verdict": "correct",
+      "why": "bias, misinformation, intellectual property",
+      "answer_sha1": "5cd20747cdc4",
+      "borderline": false
+    },
+    "q12": {
+      "verdict": "correct",
+      "why": "MSE and cross-entropy (plus extras)",
+      "answer_sha1": "d375be82fc23",
+      "borderline": false
+    },
+    "q21": {
+      "verdict": "partial",
+      "why": "never mentions normalisation / integrating to 1",
+      "answer_sha1": "75cf18e5037e",
+      "borderline": false
+    },
+    "q22": {
+      "verdict": "partial",
+      "why": "names contrastive divergence but defines it wrongly",
+      "answer_sha1": "3f5bc2abcfda",
+      "borderline": false
+    },
+    "q23": {
+      "verdict": "correct",
+      "why": "U-Net; noisy sample and noise level",
+      "answer_sha1": "abbed4cc5aab",
+      "borderline": false
+    },
+    "q24": {
+      "verdict": "partial",
+      "why": "describes refinement steps, not how the noise parameter varies per step",
+      "answer_sha1": "5a52bd180ec8",
+      "borderline": false
+    },
+    "q25": {
+      "verdict": "partial",
+      "why": "no mention of large values interfering or bounded/relative distances",
+      "answer_sha1": "2f5c8d0dce98",
+      "borderline": false
+    },
+    "q28": {
+      "verdict": "partial",
+      "why": "'focus on regions', not longer-range patterns lost in convolutions",
+      "answer_sha1": "c48efc31f134",
+      "borderline": false
+    },
+    "q33": {
+      "verdict": "partial",
+      "why": "generic fine-tuning; no human-written prompt-response demonstrations or instruction following",
+      "answer_sha1": "3158a8915cb2",
+      "borderline": false
+    },
+    "q34": {
+      "verdict": "wrong",
+      "why": "says self-supervised learning; the course example is RL with rule-based rewards",
+      "answer_sha1": "527cd716bf3b",
+      "borderline": false
+    },
+    "q35": {
+      "verdict": "wrong",
+      "why": "invented tiers",
+      "answer_sha1": "81e169e8237d",
+      "borderline": false
+    },
+    "q36": {
+      "verdict": "wrong",
+      "why": "nodes = words/tokens",
+      "answer_sha1": "2ac3c9854222",
+      "borderline": false
+    },
+    "q37": {
+      "verdict": "wrong",
+      "why": "invented 'Recurrent Attention-Generative' stages",
+      "answer_sha1": "4a7b33ee82a5",
+      "borderline": false
+    }
   },
   "rag__ollama__llama3.1-8b__hybrid__verify-concept": {
-    "q19": [
-      "partial",
-      "same answer as hybrid q19"
-    ],
-    "q29": [
-      "correct",
-      "same answer as hybrid q29"
-    ]
+    "q19": {
+      "verdict": "partial",
+      "why": "same answer as hybrid q19",
+      "answer_sha1": "81c42ed7fa29",
+      "borderline": false
+    },
+    "q29": {
+      "verdict": "correct",
+      "why": "same answer as hybrid q29; borderline: repeats the exercise's 'truncates the long tail of garbage words'; never says sampling is limited to the k most likely tokens (key-fact recall 0)",
+      "answer_sha1": "424fa7211d4f",
+      "borderline": true
+    },
+    "q02": {
+      "verdict": "correct",
+      "why": "borderline: general definition ('unfaithful to the provided source', 'not based on training data') rather than the course's 'contradicts / wrongly summarises the source'; earns the key fact via 'unfaithful'",
+      "answer_sha1": "618867af47da",
+      "borderline": true
+    }
   },
   "no_rag__ollama__llama3.1-8b__syllabus": {
-    "q03": [
-      "correct",
-      "names uv; installs via Homebrew rather than the course's curl script, which also works on macOS (benefit of the doubt)"
-    ],
-    "q20": [
-      "correct",
-      "invertible transformations of a simple distribution: the core idea"
-    ],
-    "q33": [
-      "partial",
-      "generic fine-tuning; wrongly says pre-trained weights are frozen; no human-written demonstrations"
-    ],
-    "q36": [
-      "correct",
-      "state = shared data, nodes = functions/steps, edges = flow"
-    ],
-    "q37": [
-      "partial",
-      "turns the outline's section headings into stages (merges vectorize+index, adds 'optional' as a stage)"
-    ],
-    "q38": [
-      "correct",
-      "WER"
-    ]
+    "q03": {
+      "verdict": "correct",
+      "why": "names uv; installs via Homebrew rather than the course's curl script, which also works on macOS (benefit of the doubt)",
+      "answer_sha1": "6dd45d2d3d5c",
+      "borderline": true
+    },
+    "q20": {
+      "verdict": "correct",
+      "why": "invertible transformations of a simple distribution: the core idea",
+      "answer_sha1": "57108eabd1d3",
+      "borderline": false
+    },
+    "q33": {
+      "verdict": "partial",
+      "why": "generic fine-tuning; wrongly says pre-trained weights are frozen; no human-written demonstrations",
+      "answer_sha1": "033cd70d1cf7",
+      "borderline": false
+    },
+    "q36": {
+      "verdict": "correct",
+      "why": "state = shared data, nodes = functions/steps, edges = flow",
+      "answer_sha1": "b91f2f6ebb83",
+      "borderline": false
+    },
+    "q37": {
+      "verdict": "partial",
+      "why": "turns the outline's section headings into stages (merges vectorize+index, adds 'optional' as a stage)",
+      "answer_sha1": "b213b2e619b4",
+      "borderline": false
+    },
+    "q38": {
+      "verdict": "correct",
+      "why": "WER",
+      "answer_sha1": "01bd0e262d8f",
+      "borderline": false
+    }
   },
   "rag__ollama__llama3.1-8b__hybrid__nofloor": {
-    "q19": [
-      "partial",
-      "same answer as hybrid q19"
-    ],
-    "q29": [
-      "correct",
-      "same answer as hybrid q29"
-    ]
+    "q19": {
+      "verdict": "partial",
+      "why": "same answer as hybrid q19",
+      "answer_sha1": "81c42ed7fa29",
+      "borderline": false
+    },
+    "q29": {
+      "verdict": "correct",
+      "why": "same answer as hybrid q29; borderline: repeats the exercise's 'truncates the long tail of garbage words'; never says sampling is limited to the k most likely tokens (key-fact recall 0)",
+      "answer_sha1": "424fa7211d4f",
+      "borderline": true
+    },
+    "q02": {
+      "verdict": "correct",
+      "why": "borderline: general definition ('unfaithful to the provided source', 'not based on training data') rather than the course's 'contradicts / wrongly summarises the source'; earns the key fact via 'unfaithful'",
+      "answer_sha1": "618867af47da",
+      "borderline": true
+    }
   },
   "rag__ollama__llama3.1-8b__hybrid__ctx-small": {
-    "q17": [
-      "wrong",
-      "says the penalty stops the critic being 'too confident'; no Lipschitz / gradient-norm idea"
-    ],
-    "q19": [
-      "partial",
-      "only says to condition on the class; no one-hot labels or critic labels"
-    ],
-    "q20": [
-      "correct",
-      "invertible transformations of a simple base distribution: the core idea"
-    ],
-    "q23": [
-      "partial",
-      "UNet and the noise/signal rates, but leaves out the noisy image as an input"
-    ],
-    "q29": [
-      "correct",
-      "truncates the long tail before sampling = keep the k most likely"
-    ],
-    "q35": [
-      "correct",
-      "lists all four tiers exactly; judge v2 score of 0 is grader noise"
-    ]
+    "q17": {
+      "verdict": "wrong",
+      "why": "says the penalty stops the critic being 'too confident'; no Lipschitz / gradient-norm idea",
+      "answer_sha1": "8b07cc6d2ade",
+      "borderline": false
+    },
+    "q19": {
+      "verdict": "partial",
+      "why": "only says to condition on the class; no one-hot labels or critic labels",
+      "answer_sha1": "8f92810bf07f",
+      "borderline": false
+    },
+    "q20": {
+      "verdict": "correct",
+      "why": "invertible transformations of a simple base distribution: the core idea",
+      "answer_sha1": "a89eb8c4138f",
+      "borderline": false
+    },
+    "q23": {
+      "verdict": "partial",
+      "why": "UNet and the noise/signal rates, but leaves out the noisy image as an input",
+      "answer_sha1": "97d648bde029",
+      "borderline": false
+    },
+    "q29": {
+      "verdict": "correct",
+      "why": "truncates the long tail before sampling = keep the k most likely; borderline: repeats the exercise's 'truncates the long tail of garbage words'; never says sampling is limited to the k most likely tokens (key-fact recall 0)",
+      "answer_sha1": "88ec8d15b48d",
+      "borderline": true
+    },
+    "q35": {
+      "verdict": "correct",
+      "why": "lists all four tiers exactly; judge v2 score of 0 is grader noise",
+      "answer_sha1": "7c10d450f202",
+      "borderline": false
+    },
+    "q02": {
+      "verdict": "correct",
+      "why": "borderline: general definition ('unfaithful to the provided source', 'not based on training data') rather than the course's 'contradicts / wrongly summarises the source'; earns the key fact via 'unfaithful'",
+      "answer_sha1": "618867af47da",
+      "borderline": true
+    }
   },
   "rag__ollama__llama3.1-8b__hybrid__ctx-large": {
-    "q11": [
-      "correct",
-      "reshape may copy if not contiguous, view never copies; an odd closing hedge but nothing wrong"
-    ],
-    "q19": [
-      "partial",
-      "same answer as hybrid q19"
-    ],
-    "q22": [
-      "correct",
-      "contrastive divergence derived from maximum likelihood, penalising x away from the data"
-    ],
-    "q29": [
-      "correct",
-      "same content as hybrid q29"
-    ],
-    "q35": [
-      "correct",
-      "lists all four tiers exactly"
-    ]
+    "q11": {
+      "verdict": "correct",
+      "why": "reshape may copy if not contiguous, view never copies; an odd closing hedge but nothing wrong",
+      "answer_sha1": "58c01dec7c7f",
+      "borderline": false
+    },
+    "q19": {
+      "verdict": "partial",
+      "why": "same answer as hybrid q19",
+      "answer_sha1": "81c42ed7fa29",
+      "borderline": false
+    },
+    "q22": {
+      "verdict": "correct",
+      "why": "contrastive divergence derived from maximum likelihood, penalising x away from the data",
+      "answer_sha1": "ff436eb218e2",
+      "borderline": false
+    },
+    "q29": {
+      "verdict": "correct",
+      "why": "same content as hybrid q29; borderline: repeats the exercise's 'truncates the long tail of garbage words'; never says sampling is limited to the k most likely tokens (key-fact recall 0)",
+      "answer_sha1": "8962f1b9962a",
+      "borderline": true
+    },
+    "q35": {
+      "verdict": "correct",
+      "why": "lists all four tiers exactly",
+      "answer_sha1": "c9cfe88e2d4b",
+      "borderline": false
+    },
+    "q02": {
+      "verdict": "correct",
+      "why": "borderline: general definition ('unfaithful to the provided source', 'not based on training data') rather than the course's 'contradicts / wrongly summarises the source'; earns the key fact via 'unfaithful'",
+      "answer_sha1": "618867af47da",
+      "borderline": true
+    }
   },
   "no_rag__ollama__llama3.1-8b__syllabus-lenient": {
-    "q03": [
-      "correct",
-      "names uv; 'pip install uv' also works (benefit of the doubt, as for the strict variant)"
-    ],
-    "q04": [
-      "correct",
-      "next word depends only on the current (last) word; same framing as the plain baseline's accepted answer"
-    ],
-    "q05": [
-      "correct",
-      "poor at word relationships and expensive to compute/store"
-    ],
-    "q07": [
-      "partial",
-      "describes one-/few-shot as fine-tuning on examples, not examples in the prompt"
-    ],
-    "q08": [
-      "partial",
-      "generic 'multiple models'; no retrievers, tools or real-time retrieval (main metric passed it)"
-    ],
-    "q09": [
-      "partial",
-      "vague (hallucinations, bias 'implied'); wrongly says the course doesn't go into ethics"
-    ],
-    "q13": [
-      "correct",
-      "weight sharing detects the same pattern anywhere in the image"
-    ],
-    "q15": [
-      "correct",
-      "transposed convolution"
-    ],
-    "q20": [
-      "correct",
-      "invertible transformations of a simple distribution"
-    ],
-    "q22": [
-      "partial",
-      "log-likelihood approximated with contrastive divergence; no pushing energy down/up"
-    ],
-    "q24": [
-      "correct",
-      "how the noise level is added/changed at each step"
-    ],
-    "q33": [
-      "partial",
-      "generic fine-tuning guess; no human-written demonstrations or instruction following"
-    ],
-    "q34": [
-      "partial",
-      "RL with a reward function, but via interaction with the user / RLHF rather than rule-scored generations (main metric passed it)"
-    ],
-    "q35": [
-      "partial",
-      "only three tiers; no LLM-as-judge"
-    ],
-    "q37": [
-      "partial",
-      "turns the outline's section headings into stages (merges vectorize+index, adds 'optional')"
-    ]
+    "q03": {
+      "verdict": "correct",
+      "why": "names uv; 'pip install uv' also works (benefit of the doubt, as for the strict variant)",
+      "answer_sha1": "4663d904f636",
+      "borderline": true
+    },
+    "q04": {
+      "verdict": "correct",
+      "why": "next word depends only on the current (last) word; same framing as the plain baseline's accepted answer",
+      "answer_sha1": "948004025e20",
+      "borderline": false
+    },
+    "q05": {
+      "verdict": "correct",
+      "why": "poor at word relationships and expensive to compute/store",
+      "answer_sha1": "5bd338d4cbac",
+      "borderline": false
+    },
+    "q07": {
+      "verdict": "partial",
+      "why": "describes one-/few-shot as fine-tuning on examples, not examples in the prompt",
+      "answer_sha1": "0895cd872cf3",
+      "borderline": false
+    },
+    "q08": {
+      "verdict": "partial",
+      "why": "generic 'multiple models'; no retrievers, tools or real-time retrieval (main metric passed it)",
+      "answer_sha1": "2df78ab5cc1f",
+      "borderline": false
+    },
+    "q09": {
+      "verdict": "partial",
+      "why": "vague (hallucinations, bias 'implied'); wrongly says the course doesn't go into ethics",
+      "answer_sha1": "b04999f256e6",
+      "borderline": false
+    },
+    "q13": {
+      "verdict": "correct",
+      "why": "weight sharing detects the same pattern anywhere in the image",
+      "answer_sha1": "f415b95c7e20",
+      "borderline": false
+    },
+    "q15": {
+      "verdict": "correct",
+      "why": "transposed convolution",
+      "answer_sha1": "cdfc4cff654b",
+      "borderline": false
+    },
+    "q20": {
+      "verdict": "correct",
+      "why": "invertible transformations of a simple distribution",
+      "answer_sha1": "0c0902e867eb",
+      "borderline": false
+    },
+    "q22": {
+      "verdict": "partial",
+      "why": "log-likelihood approximated with contrastive divergence; no pushing energy down/up",
+      "answer_sha1": "1c18e920b964",
+      "borderline": false
+    },
+    "q24": {
+      "verdict": "correct",
+      "why": "how the noise level is added/changed at each step",
+      "answer_sha1": "09de81c9ca77",
+      "borderline": false
+    },
+    "q33": {
+      "verdict": "partial",
+      "why": "generic fine-tuning guess; no human-written demonstrations or instruction following",
+      "answer_sha1": "600df24f2236",
+      "borderline": false
+    },
+    "q34": {
+      "verdict": "partial",
+      "why": "RL with a reward function, but via interaction with the user / RLHF rather than rule-scored generations (main metric passed it)",
+      "answer_sha1": "936417e9b492",
+      "borderline": false
+    },
+    "q35": {
+      "verdict": "partial",
+      "why": "only three tiers; no LLM-as-judge",
+      "answer_sha1": "eed7d832fec2",
+      "borderline": false
+    },
+    "q37": {
+      "verdict": "partial",
+      "why": "turns the outline's section headings into stages (merges vectorize+index, adds 'optional')",
+      "answer_sha1": "04638cd4a376",
+      "borderline": false
+    }
   }
 }
