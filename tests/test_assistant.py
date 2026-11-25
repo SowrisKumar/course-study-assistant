@@ -139,3 +139,64 @@ def test_chitchat_makes_no_llm_call(retriever):
     llm = ScriptedLLM()
     r = make(retriever, llm).ask("hello")
     assert r.mode == "chitchat" and r.answer == prompts.CHITCHAT_REPLY and llm.calls == []
+
+
+# --- support check (Step 6) --------------------------------------------------------------------
+
+
+class VerifyingLLM(ScriptedLLM):
+    """Like ScriptedLLM, but answers the support check with `verify_reply`."""
+
+    def __init__(self, verify_reply, **kw):
+        super().__init__(**kw)
+        self.verify_reply = verify_reply
+
+    def _generate(self, prompt, system, max_tokens, temperature):
+        if system == prompts.VERIFY_SYSTEM:
+            self.calls.append(("verify", prompt))
+            return LLMResponse(self.verify_reply, self.name, self.model, 0.0)
+        return super()._generate(prompt, system, max_tokens, temperature)
+
+
+def test_verify_unsupported_answer_abstains(retriever):
+    llm = VerifyingLLM("SUPPORTED: no", grader_reply="RELEVANT: 1", answer_reply="Stable Diffusion uses a VAE [1].")
+    r = make(retriever, llm, verify=True).ask("What does max pooling do?")
+    assert r.abstained and r.answer == prompts.NOT_COVERED and r.sources == []
+    assert "support check" in r.abstain_reason
+    assert [k for k, _ in llm.calls] == ["grader", "generate", "verify"]
+
+
+def test_verify_sees_all_shown_passages_without_citation_numbers(retriever):
+    llm = VerifyingLLM("SUPPORTED: yes", grader_reply="RELEVANT: 1, 2, 3", answer_reply="Fact [2].")
+    r = make(retriever, llm, verify=True).ask("What does max pooling do?")
+    assert not r.abstained and r.answer == "Fact [1]."
+    verify_prompt = llm.calls[-1][1]
+    for deck in ("Deck pool", "Deck gan", "Deck rag"):  # all three shown passages, not just the cited one
+        assert deck in verify_prompt
+    assert "Answer to check:\nFact." in verify_prompt  # citation markers stripped
+
+
+@pytest.mark.parametrize("answer,expected", [
+    (prompts.NOT_COVERED, True),
+    ("The reward model is not explicitly mentioned. However, typically ... \n\nThis isn't covered in the course materials.", True),
+    ("This isn’t covered in the course materials.", True),  # curly apostrophe
+    ("", True),
+    ("Pooling keeps the largest value [1].", False),
+])
+def test_is_not_covered(answer, expected):
+    from study_assistant.assistant import is_not_covered
+
+    assert is_not_covered(answer) is expected
+
+
+def test_verify_unparseable_reply_keeps_answer(retriever):
+    r = make(retriever, VerifyingLLM("hmm", answer_reply="Fact [1]."), verify=True).ask("What does max pooling do?")
+    assert not r.abstained
+
+
+def test_verify_skipped_for_quiz_and_when_disabled(retriever):
+    llm = VerifyingLLM("SUPPORTED: no", answer_reply="Q1 ... [1]")
+    assert not make(retriever, llm, verify=True).ask("Quiz me on GANs").abstained
+    llm2 = VerifyingLLM("SUPPORTED: no", answer_reply="Fact [1].")
+    assert not make(retriever, llm2, verify=False).ask("What does max pooling do?").abstained
+    assert "verify" not in [k for k, _ in llm.calls + llm2.calls]

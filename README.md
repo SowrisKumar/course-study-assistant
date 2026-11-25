@@ -88,9 +88,9 @@ uv run python -m study_assistant.llm -b ollama "What is a GAN?"
 | 3 | LLM backends: OpenAI, Gemini, Ollama (Llama 3.1), flan-t5 ([notebook 03](notebooks/03_llm_backends.ipynb)) | ✅ |
 | 4 | LangGraph assistant: answer / simplify / quiz / abstain, with citations ([notebook 04](notebooks/04_assistant_demo.ipynb)) | ✅ |
 | 5 | Evaluation: 50 questions, RAG vs no-RAG ([notebook 05](notebooks/05_evaluation.ipynb), [questions](eval/QUESTIONS.md)) | ✅ |
-| 6 | Improvements and write-up | ⏳ next |
+| 6 | Support check for unsupported citations (optional, `--verify`) + **[final report](docs/report.md)** | ✅ |
 
-Design decisions and their reasons: [`docs/design.md`](docs/design.md).
+**Final report: [`docs/report.md`](docs/report.md).** Design decisions and their reasons: [`docs/design.md`](docs/design.md).
 
 ## Layout
 

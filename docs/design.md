@@ -238,3 +238,27 @@ Other errors:
 - the grader is the same 8B model as the answerer
 - hybrid was selected on this set
 - the questions were not independently reviewed
+
+## Step 6 — Support check, and the final report
+
+**Goal:** remove the Step 5 failure where an answer cites passages that don't support it.
+
+**Built:** a `verify` node after `cite`. The LLM judges whether the answer's main content is stated in the passages; if not, the assistant abstains. It applies only to plain answers, because simplify adds analogies and quizzes add distractors on purpose.
+
+**Method:**
+- All trying-out used the 35 development questions.
+- The experiment ran on *saved* answers. Retrieval is deterministic and relevance verdicts are in the traces, so passages were rebuilt exactly; the script asserts this.
+- The variant applied to the evaluation set ("strict") was fixed in advance. Script and outputs: `eval/support_check/`.
+
+**Bugs found on the development set:**
+1. The check must see all passages shown, not only the cited ones; otherwise imprecise citations caused false rejections.
+2. The "not covered" sentence must be detected anywhere in a reply, because Llama sometimes hedged with general knowledge first. This was a general bug; it affected no saved Step 5 result.
+
+**Results:**
+- **Development:** it wrongly rejected 3 of 27 correct answers (11%), as did a "concept" variant. There was nothing out-of-scope left to catch.
+- **Evaluation, dense run:** removed 1 of 2 unsupported out-of-scope answers (Stable Diffusion) and 2 known-wrong answers, plus 1 correct answer.
+- **Evaluation, hybrid run:** removed 1 flawed answer the grader had passed, and missed "vanishing gradients".
+
+**Decision: off by default; available as `verify=True` / `chat --verify`.** It is a precision-for-coverage trade-off with an 8B checker, not a clear win. A stronger checker model, or checking sentence by sentence, is the next step.
+
+**Final report:** `docs/report.md` (figure in `docs/figures/`).

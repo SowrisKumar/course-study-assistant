@@ -65,6 +65,29 @@ TASKS = {
 }
 SYSTEMS = {"answer": ANSWER_SYSTEM, "simplify": SIMPLIFY_SYSTEM, "quiz": QUIZ_SYSTEM}
 
+# --- support check (Step 6) --------------------------------------------------------------
+# Step 5 found answers written from the model's own knowledge with citations to passages that
+# don't contain them (e.g. "Stable Diffusion" citing the VAE and diffusion practicals).
+
+VERIFY_SYSTEM = "You check whether an answer is supported by the course passages it was written from. You are strict."
+
+VERIFY_PROMPT = """Question: {question}
+
+Course passages:
+{passages}
+
+Answer to check:
+{answer}
+
+Is the main content of the answer actually stated in the passages?
+- NOT supported: the answer explains a concept, method, model or system that the passages never mention or explain, even if the explanation is correct and even if it cites the passages.
+- Supported: the answer rewords, summarises or combines what the passages say.
+
+Reply with exactly one line:
+SUPPORTED: yes
+or
+SUPPORTED: no"""
+
 # --- small talk -------------------------------------------------------------------------
 
 CHITCHAT_REPLY = (

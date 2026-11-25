@@ -45,6 +45,11 @@ Mode = Literal["answer", "simplify", "quiz", "chitchat"]
 # judge noise, and abstained on one more near-miss. Chosen on the evaluation set, so its scores there
 # are slightly optimistic (see docs/design.md, Step 5).
 DEFAULT_RETRIEVER = "hybrid"
+# Support check (Step 6): off by default. With Llama 3.1 8B as checker it refused 3 of 27 correct answers on
+# the development set; on the Step 5 answers it removed 3 flawed answers and 1 unsupported out-of-scope
+# answer but also 1 correct answer, and missed "vanishing gradients". A trade-off, not a clear win.
+# Available as StudyAssistant(..., verify=True) / `chat --verify`.
+DEFAULT_VERIFY = False
 OFF_TOPIC_FLOOR = 0.25  # below this best cosine score the question is clearly unrelated (Step 2: in-scope min 0.37)
 
 
@@ -166,8 +171,10 @@ _CITE = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")
 
 
 def is_not_covered(answer: str) -> bool:
-    a = answer.strip().strip('"').lower()
-    return a.startswith(prompts.NOT_COVERED.lower()[:30]) or a == ""
+    """The model declined. Checked anywhere in the reply: on the development set Llama sometimes wrote a
+    general-knowledge hedge ("not explicitly mentioned... typically...") and only then the not-covered sentence."""
+    a = " ".join(answer.lower().split()).replace("’", "'")
+    return not a.strip(' "') or prompts.NOT_COVERED.lower().rstrip(".") in a
 
 
 # --- the assistant ----------------------------------------------------------------------------
@@ -179,18 +186,19 @@ class StudyAssistant:
     retriever:    Step 2 retriever (default: dense)
     grader_llm:   LLM for the relevance check (default: same as llm)
     grading:      "llm" (default) | "threshold" (score >= threshold; for weak models like flan-t5) | "none"
+    verify:       after answering, check the answer is supported by the passages; abstain if not (Step 6)
     k:            chunks to retrieve; max_passages: documents shown to the LLM
     """
 
     def __init__(self, llm: LLM, retriever: Retriever | None = None, *, grader_llm: LLM | None = None,
                  grading: str = "llm", threshold: float = 0.45, k: int = 8, max_passages: int = 5,
-                 off_topic_floor: float = OFF_TOPIC_FLOOR):
+                 off_topic_floor: float = OFF_TOPIC_FLOOR, verify: bool = DEFAULT_VERIFY):
         if grading not in ("llm", "threshold", "none"):
             raise ValueError("grading must be 'llm', 'threshold' or 'none'")
         self.llm = llm
         self.retriever = retriever or build_retriever(DEFAULT_RETRIEVER)
         self.grader_llm = grader_llm or llm
-        self.grading, self.threshold = grading, threshold
+        self.grading, self.threshold, self.verify = grading, threshold, verify
         self.k, self.max_passages, self.off_topic_floor = k, max_passages, off_topic_floor
         self.graph = self._build_graph()
 
@@ -277,6 +285,31 @@ class StudyAssistant:
         return {"answer": answer.strip(), "sources": sources, "abstained": False, "uncited": not sources,
                 "trace": [f"cite: {len(sources)} source(s) cited" + ("" if sources else " -> WARNING: uncited answer")]}
 
+    def _verify(self, state: State) -> State:
+        """Support check: is the answer's main content actually in the passages? If not, abstain.
+
+        Only for plain answers: simple explanations add analogies and quizzes add distractors on
+        purpose, which a strict support check would wrongly reject.
+        """
+        if not self.verify or state.get("abstained") or state["mode"] != "answer":
+            return {"trace": []}
+        # Check against ALL passages the model was shown, not only the cited ones: on the development set a
+        # correct answer drew on slide 5 but cited only slide 6 and was wrongly rejected. Citation numbers
+        # are removed from both sides so the checker judges content, not numbering.
+        passages = "\n\n".join(f"({p.label})\n{p.text}" for p in state["relevant"])
+        answer = re.sub(r"\s*\[\d+\]", "", state["answer"])
+        reply = self.grader_llm.generate(
+            prompts.VERIFY_PROMPT.format(question=state["question"], passages=passages, answer=answer),
+            system=prompts.VERIFY_SYSTEM, max_tokens=10,
+        ).text
+        m = re.search(r"SUPPORTED\s*:\s*(yes|no)", reply, re.I)
+        if m and m.group(1).lower() == "no":
+            return {"answer": prompts.NOT_COVERED, "abstained": True, "sources": [], "uncited": False,
+                    "abstain_reason": "support check: answer not supported by the passages",
+                    "trace": ["verify: answer NOT supported by the passages -> abstain"]}
+        verdict = "supported" if m else f"unparseable reply {reply!r} -> keep answer"
+        return {"trace": [f"verify: {verdict}"]}
+
     # ---- graph ----
 
     def _build_graph(self):
@@ -288,6 +321,7 @@ class StudyAssistant:
         g.add_node("abstain", self._abstain)
         g.add_node("generate", self._generate)
         g.add_node("cite", self._cite)
+        g.add_node("verify", self._verify)
 
         g.add_edge(START, "route")
         g.add_conditional_edges("route", lambda s: "chitchat" if s["mode"] == "chitchat" else "retrieve",
@@ -296,7 +330,8 @@ class StudyAssistant:
         g.add_conditional_edges("check", lambda s: "generate" if s["relevant"] else "abstain",
                                 {"generate": "generate", "abstain": "abstain"})
         g.add_edge("generate", "cite")
-        g.add_edge("cite", END)
+        g.add_edge("cite", "verify")
+        g.add_edge("verify", END)
         g.add_edge("abstain", END)
         g.add_edge("chitchat", END)
         return g.compile()

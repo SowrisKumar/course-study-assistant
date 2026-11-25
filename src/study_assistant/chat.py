@@ -22,6 +22,8 @@ def main() -> None:
     p.add_argument("-m", "--model", help="override the backend's default model")
     p.add_argument("-r", "--retriever", choices=sorted(RETRIEVERS), default=DEFAULT_RETRIEVER)
     p.add_argument("-v", "--verbose", action="store_true", help="show the steps the assistant took")
+    p.add_argument("--verify", action="store_true",
+                   help="extra support check after answering: fewer unsupported answers, some correct ones refused")
     args = p.parse_args()
     warnings.filterwarnings("ignore")
 
@@ -32,7 +34,7 @@ def main() -> None:
     # flan-t5 is too small to judge relevance reliably; it uses the similarity threshold instead
     grading = "threshold" if args.backend == "flan" else "llm"
     print(f"Loading course index ({args.retriever}) ...")
-    bot = StudyAssistant(llm, build_retriever(args.retriever), grading=grading)
+    bot = StudyAssistant(llm, build_retriever(args.retriever), grading=grading, verify=args.verify)
 
     def answer(q: str) -> None:
         r = bot.ask(q)
