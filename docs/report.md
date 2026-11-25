@@ -18,9 +18,10 @@ On 50 new evaluation questions (38 the course covers, 12 it doesn't), compared w
 
 Over all 50 questions the assistant handled 49 correctly and the plain model 27. The two disagree on 24 questions and the assistant wins 23 of them (exact McNemar test, p < 0.001). With this few questions every rate has a wide interval, e.g. 87–100% for the 97% (Section 6).
 
-Three findings matter beyond this project:
+Four findings matter beyond this project:
 - **An 8B LLM is an unreliable grader**, in both directions. We had to redesign the grading, and still read every failed answer by hand.
 - **Our LLM relevance check did nothing measurable.** It never declined a question; all abstentions came from the answer prompt and a similarity floor. Turning it off gave the same results.
+- **The baseline was not simply set up to lose.** The course helps on general-knowledge questions too (97% vs 70%), and giving the plain model the course syllabus doesn't close the gap: it only trades wrong answers for refusals (Section 6).
 - **A post-hoc support check found nothing left to catch on the evaluation set** (Section 7). Our first assessment of its two variants was wrong until we labelled the development answers by hand.
 
 ---
@@ -162,8 +163,9 @@ Those checks caught mistakes in our own drafts. After the audit we also replaced
 **Systems.**
 - RAG vs no-RAG for Llama 3.1 8B and for flan-t5-base.
 - RAG + Llama with dense and with hybrid retrieval.
-- Two ablations of the main system: the relevance check turned off, and the support check turned on (Section 7).
+- Ablations of the main system, each changing one thing: relevance check off, similarity floor off, less context (3 passages), more context (8 passages), and the support check on (Section 7).
 - The no-RAG baseline gets the same "you are the course's study assistant; say not covered if…" prompt, but no materials.
+- A fairer no-RAG baseline that also sees the course **syllabus** (the outline of every lecture and lab, about 4,000 tokens), with a strict and a lenient instruction.
 
 **Metrics.**
 - **Abstention:** the share of not-covered questions declined, and the share of covered questions wrongly declined.
@@ -211,6 +213,49 @@ Hand-corrected scores with 95% Wilson intervals, and paired tests against the ma
 - **The LLM relevance check did nothing measurable.** In every Llama run it accepted at least one passage for every question; it never declined. All 12 abstentions came from the similarity floor (the 2 off-topic questions) and the answer prompt (the 10 others). With the check turned off, the results were the same within one question each way: one answer got better, one worse. It costs one LLM call per question (14 vs 10 s per answer).
 - **Retrieval is not the bottleneck here.** Both retrievers put the right lecture (or lab) in the top 3 passages for all 38 covered questions, so the remaining errors come from generation.
 - **flan-t5 is too small for this task.** RAG lifts it from 0% to 24%, but it writes a few words and almost never cites. Its runs were not hand-checked.
+
+### Ablations: which parts of the pipeline matter?
+
+Each row changes one thing in the main system. Correctness is by hand; p is the exact McNemar test against the main system over all 50 questions (`eval/analysis.py`).
+
+| | Correct (38) | Declined (12) | Seconds / question | p vs main |
+|---|---|---|---|---|
+| **Main system** | **97%** | **100%** | 14 | — |
+| Relevance check off | 97% | 100% | 10 | 1 |
+| Similarity floor off | 97% | 100% | 14 | 1 |
+| Less context (3 passages) | 92% | 100% | 9 | 0.5 |
+| More context (8 passages) | 97% | 92%* | 19 | 1 |
+| Support check on (concept) | 97% | 100% | 18 | 1 |
+
+\* It answered the L1/L2 near-miss, but only to say the course "does not mention" it and to point to dropout, with a citation. That is effectively a decline that the refusal detector counts as an answer.
+
+- **Nothing beats the default significantly**, and two components are dead weight on this set: the **relevance check** never declines anything, and the **similarity floor** only saves LLM calls on the two off-topic questions (the answer prompt catches them too).
+- **The answer prompt does all the real abstention work.**
+- **Less context costs accuracy** (q17 becomes wrong, q23 loses an input); more context costs time. 8 chunks / 5 passages is a reasonable middle, not a proven optimum.
+
+### Was the baseline set up to lose?
+
+Two checks.
+
+**1. Course-specific vs general-knowledge questions.** Five questions can only be answered from this course's own material: the MIT/Stanford study (q01), the course's package manager (q03), the word-chain toy example (q34), the evals lab's tiers (q35), the RAG primer's stages (q37). The other 33 are general ML knowledge.
+
+| | General knowledge (33) | Course-specific (5) |
+|---|---|---|
+| Llama + course | **97%** | **100%** |
+| Llama, no course | 70% | 0% |
+
+The course helps on general questions too (10 wins, 1 loss, p = 0.012), so the gap is not just course trivia. We chose the five after seeing results; the audit's own list, which adds q38, gives the same picture.
+
+**2. Give the plain model the syllabus,** so it can judge what the course covers:
+
+| | Correct (38, by hand) | Covered questions refused | Not covered → declined (12) | All 50 handled |
+|---|---|---|---|---|
+| **Llama + course (main)** | **97%** | 0% | **100%** | **98%** |
+| Llama, no course | 61% | 3% | 33% | 54% |
+| …sees the syllabus, strict ("decline if not in the outline") | 11% | 84% | 100% | 32% |
+| …sees the syllabus, lenient ("decline only if clearly outside") | 42% | 37% | 83% | 52% |
+
+**The syllabus doesn't rescue the baseline; it only moves it along a trade-off.** With the strict wording the model refuses 32 of the 38 covered questions, including topics plainly in the outline (GRUs, Bayes' theorem, hallucinations). With the lenient wording it answers more, but still refuses 14 covered questions and answers two near-misses (label smoothing, VQ-VAE). Either way it handles about half the questions or fewer, against 98% for the assistant (p < 10⁻⁶ for each). Knowing the syllabus isn't enough: to answer *from* the course, the model has to see the course.
 
 **Failure analysis.** The main system's remaining failure is a **generic answer** that misses the course's specific point. For q19 (class-conditional GANs) it says to "condition on the label" but not how the course does it (one-hot labels to the generator *and* the critic). The other configurations show three more kinds of failure:
 - **A confident answer with citations that don't support it** (dense, "Stable Diffusion"). The passages about VAEs and the diffusion practical were accepted as relevant, Llama answered from its own knowledge, and it cited them. This looks trustworthy, which is worse than an uncited answer. Before the audit the same thing happened for "vanishing gradients", which turned out to be half covered by the course; we replaced that question.
@@ -277,7 +322,7 @@ uv run python eval/analysis.py                  # hand-corrected scores, interva
 
 - **FastAPI endpoint + Docker image** on the same package (the class `sps_genai` pattern), as in the proposal.
 - **A stronger, independent grader**, and a second human reviewer for the question set.
-- **Replace or remove the relevance check:** it adds a model call and, with an 8B model, never declines.
+- **Replace or remove the relevance check:** it adds a model call and, with an 8B model, never declines (the ablation shows nothing is lost without it).
 - **Caption image-only slides** (equations, diagrams) with a vision model, so they become searchable.
 - **Harder paraphrase questions**, and merging rank-fusion votes per notebook section (split sections caused one hybrid miss on the development set).
 - **Multi-turn conversation memory** for follow-up questions.

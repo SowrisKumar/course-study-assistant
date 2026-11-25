@@ -296,3 +296,15 @@ With 38 + 12 questions we now report 95% Wilson intervals and exact McNemar test
 - **The Step 6 development result was wrong.** It counted every rejected development answer as a correct answer lost. Hand labels (`eval/support_check/dev_labels.json`) show strict rejected 2 correct answers and 1 of the 3 wrong ones; concept rejected all 3 wrong ones and no correct ones. So concept is the better variant, chosen on development data only, and it was added as `verify="concept"`.
 - **On the evaluation set neither helps:** the main system already declines all 12 not-covered questions. Strict rejected one correct answer (q02); concept changed nothing. Both add about 4 s per answer.
 - **Decision: off by default** (the default system is the evaluated one). `chat --verify` uses the concept variant.
+
+## Making the evaluation stronger (after the audit)
+
+The audit also listed cheaper ideas to make the results more convincing. We did these:
+
+- **Experiment log.** Every run is appended to `eval/experiment_log.csv`: one row per build and configuration, with commit, knowledge-base size, question-set hash, model digest, and automatic and hand scores. Notebook 06 charts it. The pre-audit build is backfilled from the archive.
+- **Course-specific vs general-knowledge split.** Five questions need this course's own material; the course still helps a lot on the other 33 (97% vs 70% by hand, p = 0.012). Classified after seeing results, so the audit's six-question list is reported as a check.
+- **Fairer baseline: the plain model sees the syllabus** (lecture and lab titles with their section titles, built from the knowledge base by `course_outline()`). With a strict instruction it refused 32 of the 38 covered questions (11% correct, 100% declined); with a lenient one, 42% correct and 83% declined. Either way it handles about half the 50 questions or fewer, vs 98% for the assistant. Both wordings are reported: helping the baseline is the conservative direction.
+- **More ablations:** similarity floor off (no change; the answer prompt also catches off-topic questions), 3 vs 8 passages (less context costs accuracy, more costs time). Nothing beats the default significantly.
+- **Real sessions in the report** (`docs/examples.md`), the workflow as an image (`docs/figures/make_workflow.py`) so it survives PDF export, the embedding model pinned to a fixed Hugging Face revision, and the query embedded once per search instead of twice.
+
+Still open, and needing people or keys: an independent grader (Gemini key), a second human grader with an agreement score, and Alfonso reviewing the question set.

@@ -17,6 +17,8 @@ Team: Sowris Kumar Sripathy, Alfonso Garcia. Original proposal: [`docs/proposal.
 | Says "not covered" when it isn't | **100%** (12/12) | 33% |
 | …for topics that sound like the course (PPO, DPO, FID…) | **100%** (10/10) | 20% |
 
+The gap isn't just course trivia: on the 33 general-knowledge questions it is 97% vs 70%. Giving the plain model the course syllabus doesn't close it either; it just trades wrong answers for refusals. Example sessions: [`docs/examples.md`](docs/examples.md).
+
 ## Try it
 
 ```bash

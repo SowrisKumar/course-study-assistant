@@ -34,3 +34,5 @@ Judge v2 was then re-run with `--rejudge` (it only scores answers that have no v
 | Ablation: less context (3 passages) | 9 |
 | Ablation: more context (8 passages) | 18 |
 | Judge v2 for the new runs | 9 |
+| …syllabus, lenient wording (code 902ebee) | 7 |
+| Judge v2 for it | 2 |

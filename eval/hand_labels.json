@@ -6,7 +6,7 @@
     "Answers not listed keep the main metric's verdict (correct). 'partial' counts as not correct.",
     "Rule: correct = states the reference's main point(s) and nothing clearly wrong about them; extra detail is fine.",
     "Labelled by the assistant's developers (not blind to the system); see docs/report.md, Threats to validity.",
-    "For the syllabus baselines every answered covered question is listed; all their refusals count as wrong."
+    "For the syllabus baselines every answered covered question was read (passes included); refusals count as wrong."
   ],
   "rag__ollama__llama3.1-8b__hybrid": {
     "q19": [
@@ -188,6 +188,126 @@
     "q38": [
       "correct",
       "WER"
+    ]
+  },
+  "rag__ollama__llama3.1-8b__hybrid__nofloor": {
+    "q19": [
+      "partial",
+      "same answer as hybrid q19"
+    ],
+    "q29": [
+      "correct",
+      "same answer as hybrid q29"
+    ]
+  },
+  "rag__ollama__llama3.1-8b__hybrid__ctx-small": {
+    "q17": [
+      "wrong",
+      "says the penalty stops the critic being 'too confident'; no Lipschitz / gradient-norm idea"
+    ],
+    "q19": [
+      "partial",
+      "only says to condition on the class; no one-hot labels or critic labels"
+    ],
+    "q20": [
+      "correct",
+      "invertible transformations of a simple base distribution: the core idea"
+    ],
+    "q23": [
+      "partial",
+      "UNet and the noise/signal rates, but leaves out the noisy image as an input"
+    ],
+    "q29": [
+      "correct",
+      "truncates the long tail before sampling = keep the k most likely"
+    ],
+    "q35": [
+      "correct",
+      "lists all four tiers exactly; judge v2 score of 0 is grader noise"
+    ]
+  },
+  "rag__ollama__llama3.1-8b__hybrid__ctx-large": {
+    "q11": [
+      "correct",
+      "reshape may copy if not contiguous, view never copies; an odd closing hedge but nothing wrong"
+    ],
+    "q19": [
+      "partial",
+      "same answer as hybrid q19"
+    ],
+    "q22": [
+      "correct",
+      "contrastive divergence derived from maximum likelihood, penalising x away from the data"
+    ],
+    "q29": [
+      "correct",
+      "same content as hybrid q29"
+    ],
+    "q35": [
+      "correct",
+      "lists all four tiers exactly"
+    ]
+  },
+  "no_rag__ollama__llama3.1-8b__syllabus-lenient": {
+    "q03": [
+      "correct",
+      "names uv; 'pip install uv' also works (benefit of the doubt, as for the strict variant)"
+    ],
+    "q04": [
+      "correct",
+      "next word depends only on the current (last) word; same framing as the plain baseline's accepted answer"
+    ],
+    "q05": [
+      "correct",
+      "poor at word relationships and expensive to compute/store"
+    ],
+    "q07": [
+      "partial",
+      "describes one-/few-shot as fine-tuning on examples, not examples in the prompt"
+    ],
+    "q08": [
+      "partial",
+      "generic 'multiple models'; no retrievers, tools or real-time retrieval (main metric passed it)"
+    ],
+    "q09": [
+      "partial",
+      "vague (hallucinations, bias 'implied'); wrongly says the course doesn't go into ethics"
+    ],
+    "q13": [
+      "correct",
+      "weight sharing detects the same pattern anywhere in the image"
+    ],
+    "q15": [
+      "correct",
+      "transposed convolution"
+    ],
+    "q20": [
+      "correct",
+      "invertible transformations of a simple distribution"
+    ],
+    "q22": [
+      "partial",
+      "log-likelihood approximated with contrastive divergence; no pushing energy down/up"
+    ],
+    "q24": [
+      "correct",
+      "how the noise level is added/changed at each step"
+    ],
+    "q33": [
+      "partial",
+      "generic fine-tuning guess; no human-written demonstrations or instruction following"
+    ],
+    "q34": [
+      "partial",
+      "RL with a reward function, but via interaction with the user / RLHF rather than rule-scored generations (main metric passed it)"
+    ],
+    "q35": [
+      "partial",
+      "only three tiers; no LLM-as-judge"
+    ],
+    "q37": [
+      "partial",
+      "turns the outline's section headings into stages (merges vectorize+index, adds 'optional')"
     ]
   }
 }
