@@ -2,6 +2,7 @@
 # Reproduces every evaluation number in docs/report.md.
 # Needs: `uv sync`, Ollama running with `ollama pull llama3.1:8b`. Takes about 2 hours on an M2 laptop.
 # Results go to eval/results/ (override with OUT=...); runs resume if interrupted.
+# At the end the scores are appended to eval/experiment_log.csv as build "$BUILD" (default: today's date + commit).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT=${OUT:-eval/results}
@@ -37,3 +38,4 @@ run "Judge v2 (with course excerpts), all runs" --rejudge
 
 echo "- finished: $(date -u '+%Y-%m-%d %H:%M UTC')" >> "$INFO"
 uv run python -m study_assistant.evaluation --out "$OUT" --report
+uv run python -m study_assistant.experiment_log --results "$OUT" --build "${BUILD:-$(date +%F) $(git rev-parse --short HEAD)}"

@@ -261,7 +261,7 @@ uv run python -m study_assistant.chat -v        # chat with the assistant
 uv run python eval/analysis.py                  # hand-corrected scores, intervals and tests
 ```
 
-`eval/results/RUN_INFO.md` records the code version, model digest and timings of the run reported here. Notebooks `01`–`05` walk through each step with their outputs, and `docs/design.md` logs every decision.
+`eval/results/RUN_INFO.md` records the code version, model digest and timings of the run reported here. Every run is also appended to `eval/experiment_log.csv`, one row per build and configuration, so results from different models and versions are kept side by side; notebook `06` charts them (including this project's scores before and after the audit). Notebooks `01`–`06` walk through each step with their outputs, and `docs/design.md` logs every decision.
 
 ## 10. Future work
 

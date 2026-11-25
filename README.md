@@ -88,6 +88,8 @@ uv run python -m study_assistant.llm -b ollama "What is a GAN?"
 uv run python eval/analysis.py     # hand-corrected scores, 95% intervals, McNemar tests
 ```
 
+Every run is appended to [`eval/experiment_log.csv`](eval/experiment_log.csv) (one row per build and configuration, with the code version and model digest). [Notebook 06](notebooks/06_experiment_log.ipynb) charts all models and builds side by side.
+
 ## Status
 
 | Step | What | Status |
@@ -108,7 +110,8 @@ data/processed/documents.jsonl   the knowledge base
 src/study_assistant/             the code: ingest/ (knowledge base), chunking.py, retrieval.py, llm/,
                                  assistant.py (LangGraph workflow), prompts.py, chat.py
 notebooks/                       step-by-step walkthroughs
-eval/                            questions with verified answers; results, hand labels, analysis
+eval/                            questions with verified answers; results, hand labels, analysis,
+                                 experiment_log.csv (every build and model ever evaluated)
 scripts/run_evaluation.sh        reproduces every evaluation number
 tests/                           tests
 docs/                            proposal, design log
