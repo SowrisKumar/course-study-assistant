@@ -93,6 +93,37 @@ uv run python eval/analysis.py --results eval/runs/<folder>   # the same for you
 
 Every run is appended to [`eval/experiment_log.csv`](eval/experiment_log.csv) (one row per build and configuration, with the code version and model digest). [Notebook 06](notebooks/06_experiment_log.ipynb) charts all models and builds side by side.
 
+## Run it as a web API (FastAPI + Docker)
+
+The same assistant behind an HTTP API (`src/study_assistant/api.py`, the class `sps_genai` pattern):
+
+| Endpoint | Body | Returns |
+|---|---|---|
+| `POST /ask` | `{"question": "...", "trace": false}` | answer with numbered sources (lecture + slide), or "not covered" |
+| `POST /explain` | `{"topic": "..."}` | a simpler explanation, with sources |
+| `POST /quiz` | `{"topic": "..."}` | a 3-question practice quiz, with sources |
+| `GET /health` | | model, retriever, knowledge-base size (503 if the model isn't reachable) |
+
+Interactive docs at `/docs`.
+
+**Without Docker:**
+
+```bash
+uv run uvicorn study_assistant.api:app --port 8000
+```
+
+**With Docker** (the image holds the code, the knowledge base and the embedding model, but not the language model):
+
+```bash
+docker compose up --build
+```
+
+```bash
+curl -s -X POST localhost:8000/ask -H 'content-type: application/json' -d '{"question": "What gates does a GRU have?"}'
+```
+
+By default the container uses Ollama running on your machine (`ollama pull llama3.1:8b` first), which on a Mac is much faster than Ollama inside Docker. To use Gemini instead, put `GEMINI_API_KEY` in `.env` and run `LLM_BACKEND=gemini docker compose up --build`. Other settings: `RETRIEVER` and `VERIFY` (see `docker-compose.yml`).
+
 ## Status
 
 | Step | What | Status |
@@ -103,6 +134,7 @@ Every run is appended to [`eval/experiment_log.csv`](eval/experiment_log.csv) (o
 | 4 | LangGraph assistant: answer / simplify / quiz / abstain, with citations ([notebook 04](notebooks/04_assistant_demo.ipynb)) | ✅ |
 | 5 | Evaluation: 50 questions, RAG vs no-RAG ([notebook 05](notebooks/05_evaluation.ipynb), [questions](eval/QUESTIONS.md)) | ✅ |
 | 6 | Support check for unsupported citations (optional, `--verify`) + **[final report](docs/report.md)** | ✅ |
+| 7 | HTTP API (FastAPI) and Docker image | ✅ |
 
 **Final report: [`docs/report.md`](docs/report.md).** Design decisions and their reasons: [`docs/design.md`](docs/design.md).
 
@@ -111,11 +143,12 @@ Every run is appended to [`eval/experiment_log.csv`](eval/experiment_log.csv) (o
 ```
 data/processed/documents.jsonl   the knowledge base
 src/study_assistant/             the code: ingest/ (knowledge base), chunking.py, retrieval.py, llm/,
-                                 assistant.py (LangGraph workflow), prompts.py, chat.py
+                                 assistant.py (LangGraph workflow), prompts.py, chat.py, api.py (FastAPI)
 notebooks/                       step-by-step walkthroughs
 eval/                            questions with verified answers; results, hand labels, analysis,
                                  experiment_log.csv (every build and model ever evaluated)
 scripts/run_evaluation.sh        reproduces every evaluation number
 tests/                           tests
 docs/                            proposal, design log
+Dockerfile, docker-compose.yml   the API in a container
 ```

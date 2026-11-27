@@ -1,0 +1,15 @@
+# Only pyproject.toml, uv.lock, README.md, src/ and data/processed/ go into the image.
+.git
+.venv
+.venv.nosync
+.env
+data/cache
+eval
+notebooks
+docs
+tests
+scripts
+**/__pycache__
+**/.ipynb_checkpoints
+.pytest_cache
+.DS_Store

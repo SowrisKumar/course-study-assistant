@@ -320,3 +320,18 @@ A second AI-assisted review (Claude, separate session) re-checked the finished p
 | **The headline 97% rested on two generous labels** (q02's general definition of an intrinsic hallucination, q29's "truncates the long tail"). | Marked *borderline* wherever they occur. A **strict reading** that counts them as wrong is reported next to every hand-checked number: 92% for the main system, 87% for dense. Course vs no course stays significant (p < 0.001); the general-knowledge-only comparison does not (p = 0.065). |
 | **The first audit was called "independent".** It was an AI review. | Described as an AI-assisted review, with a note on AI use in the report (Section 8). |
 
+
+## Step 7: HTTP API and Docker (the proposal's last item)
+
+**API** (`src/study_assistant/api.py`, FastAPI, the class `sps_genai` pattern): `POST /ask`, `/explain`, `/quiz` and `GET /health`, with typed request and response models.
+- Each reply carries the answer, `abstained` and its reason, an `uncited` warning, and the numbered sources (lecture + slide). It includes the workflow trace on request.
+- **The assistant is built on the first request, not at import.** The server starts even when the model isn't reachable yet, and answers 503 with the reason instead of crashing.
+- **One question at a time (a lock).** A local model answers sequentially anyway, and the graph isn't guaranteed to be thread-safe.
+- Configuration comes from environment variables (`LLM_BACKEND`, `OLLAMA_HOST`, `RETRIEVER`, `VERIFY`), so the same code runs locally and in the container.
+- **Tests use a scripted fake model** (`tests/test_api.py`), so they need no Ollama.
+
+**Docker** (`Dockerfile`, `docker-compose.yml`):
+- **What's in the image:** the code, the knowledge base and the pinned embedding model. The knowledge base is embedded at build time, so the container starts fast and needs no internet (`HF_HUB_OFFLINE=1`).
+- **What isn't:** the language model. On a Mac, Ollama inside Docker can't use the GPU, so by default the container calls Ollama on the host (`host.docker.internal`). Gemini/OpenAI work with a key, and an optional `ollama` service runs everything in Docker.
+- **CPU-only PyTorch on Linux** (`[tool.uv.sources]` in `pyproject.toml`): the default Linux wheels pull several GB of CUDA libraries a CPU container never uses. macOS installs are unchanged.
+- **Separate Docker variable for the Ollama address.** Compose uses its own `DOCKER_OLLAMA_HOST`, so `OLLAMA_HOST=localhost` in `.env` (right for the CLI) can't leak into the container, where localhost is the container itself.

@@ -1,0 +1,35 @@
+# docker compose up --build        -> API on http://localhost:8000 (docs at /docs)
+#
+# By default the API uses Ollama running on THIS machine (start the Ollama app and
+# `ollama pull llama3.1:8b` first). On a Mac that's much faster than Ollama inside Docker,
+# which can't use the GPU. To use Gemini instead, put GEMINI_API_KEY in .env and set
+# LLM_BACKEND=gemini below (or in .env).
+#
+# No Ollama on this machine? Run it in Docker too (slow on CPU):
+#   DOCKER_OLLAMA_HOST=http://ollama:11434 docker compose --profile ollama up --build
+#   docker compose exec ollama ollama pull llama3.1:8b
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      LLM_BACKEND: ${LLM_BACKEND:-ollama}
+      # its own variable, so OLLAMA_HOST=localhost in .env (right for the CLI) can't leak into the container
+      OLLAMA_HOST: ${DOCKER_OLLAMA_HOST:-http://host.docker.internal:11434}
+      RETRIEVER: ${RETRIEVER:-hybrid}
+      VERIFY: ${VERIFY:-off}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # lets Linux hosts reach Ollama on the host too
+
+  ollama:
+    image: ollama/ollama
+    profiles: ["ollama"]
+    volumes:
+      - ollama:/root/.ollama
+
+volumes:
+  ollama:

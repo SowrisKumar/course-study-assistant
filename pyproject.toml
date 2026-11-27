@@ -19,6 +19,9 @@ dependencies = [
     "google-genai>=3.6.1",
     "httpx>=0.28.1",
     "langgraph>=1.2.24",
+    "fastapi>=0.165.0",
+    "uvicorn>=0.54.0",
+    "torch>=2.15.0",  # via sentence-transformers; listed so Linux (Docker) can use the CPU-only build below
 ]
 
 [dependency-groups]
@@ -43,3 +46,14 @@ testpaths = ["tests"]
 filterwarnings = [
     "ignore:builtin type .* has no __module__ attribute:DeprecationWarning",  # PyMuPDF SWIG internals
 ]
+
+# On Linux (the Docker image) install PyTorch's CPU-only build: the default Linux wheels pull several GB
+# of CUDA libraries the container never uses. macOS is unaffected.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+

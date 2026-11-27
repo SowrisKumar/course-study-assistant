@@ -37,7 +37,7 @@ The proposal (midterm, `docs/proposal.png`) set out five goals. We kept all of t
 4. **Explain a topic more simply, and make a short practice quiz.**
 5. **Evaluate on ~50 questions with known answers** (correctness, citations, admitting ignorance) against a chatbot that can't see the materials.
 
-FastAPI + Docker deployment was moved to the end (Section 10).
+FastAPI + Docker deployment was moved to the end; it is done (Section 9).
 
 ## 2. What we used from the class
 
@@ -50,6 +50,7 @@ FastAPI + Docker deployment was moved to the end (Section 10).
 | `llm_evals.ipynb`, `llm_as_judge_solution.ipynb` | Evaluation tiers: rules (key facts) → LLM-as-judge, and the warning that judges are unreliable, which we confirmed |
 | Lectures 2, 3, 9 | Embeddings, RAG vs fine-tuning, transformers (the models we use) |
 | `Module 1 Custom Setup Guide` | `uv` project management, as used in this repo |
+| `sps_genai` (class FastAPI + Docker project) | The HTTP API and the Docker image: FastAPI app served by uvicorn, `uv sync --frozen` in a slim Python image |
 
 ## 3. Knowledge base (Step 1)
 
@@ -320,18 +321,20 @@ The hand labels in `eval/hand_labels.json` were produced in the same AI-assisted
 
 ```bash
 git clone https://github.com/SowrisKumar/course-study-assistant.git && cd course-study-assistant
-uv sync && uv run pytest                        # 120+ tests; the first run downloads the embedding model
+uv sync && uv run pytest                        # 130+ tests; the first run downloads the embedding model
 ollama pull llama3.1:8b                         # local model (or add a Gemini/OpenAI key to .env)
 uv run python -m study_assistant.chat -v        # chat with the assistant
 ./scripts/run_evaluation.sh                     # re-run every evaluation configuration (~2¾ h on an M2)
 uv run python eval/analysis.py                  # hand-corrected scores, intervals and tests
+docker compose up --build                       # the HTTP API in a container: http://localhost:8000/docs
 ```
+
+**HTTP API and Docker.** `src/study_assistant/api.py` serves the same assistant over HTTP (FastAPI, the class `sps_genai` pattern): `POST /ask`, `/explain` and `/quiz` return the answer, whether it abstained, and the numbered sources with their lecture and slide. The Docker image contains the code, the knowledge base and the embedding model, pre-computed at build time so the container needs no internet at run time. The language model stays outside the image: by default the container talks to Ollama on the host, which on a Mac can use the GPU; Gemini or OpenAI work through an API key. Measured on the M2 laptop: the image is 3.0 GB (CPU-only PyTorch; the default Linux PyTorch would add several GB of unused CUDA libraries), the container is ready in about 1 s, and answers take 10–30 s with Llama 3.1 8B on the host (the first request also loads the models). If the model is unreachable, the API answers with HTTP 503 and the reason rather than failing.
 
 `eval/results/RUN_INFO.md` records the code version, model digest and timings of the run reported here. Every run is also appended to `eval/experiment_log.csv`, one row per build and configuration, so results from different models and versions are kept side by side; notebook `06` charts them (including this project's scores before and after the audit). Notebooks `01`–`06` walk through each step with their outputs, and `docs/design.md` logs every decision.
 
 ## 10. Future work
 
-- **FastAPI endpoint + Docker image** on the same package (the class `sps_genai` pattern), as in the proposal.
 - **A stronger, independent grader**, and a second human reviewer for the question set.
 - **Replace or remove the relevance check:** it adds a model call and, with an 8B model, never declines (the ablation shows nothing is lost without it).
 - **Caption image-only slides** (equations, diagrams) with a vision model, so they become searchable.
