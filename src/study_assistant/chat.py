@@ -8,18 +8,9 @@
 from __future__ import annotations
 
 import argparse
-import logging
-import os
 import warnings
 
-# Keep the terminal clean: no model-loading progress bars or library notices before the answer.
-os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
-os.environ.setdefault("TQDM_DISABLE", "1")
-os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
-os.environ.setdefault("HF_HUB_VERBOSITY", "error")
-for noisy in ("torch.distributed.elastic.multiprocessing.redirects", "huggingface_hub", "sentence_transformers"):
-    logging.getLogger(noisy).setLevel(logging.ERROR)
-
+from . import quiet  # noqa: F401  (before the heavy imports: no progress bars or library notices)
 from .assistant import DEFAULT_RETRIEVER, StudyAssistant
 from .llm import BACKENDS, LLMUnavailable, get_llm
 from .retrieval import RETRIEVERS, build_retriever

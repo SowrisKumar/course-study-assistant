@@ -6,7 +6,7 @@
     "Answers not listed keep the main metric's verdict. 'partial' counts as not correct.",
     "Rule: correct = states the reference's main point(s) and nothing clearly wrong about them; extra detail is fine.",
     "borderline = we gave the answer the benefit of the doubt; the strict reading counts these as not correct. q02 (general 'unfaithful to the source' definition, not the course's 'wrongly summarised') and q29 (only 'truncates the long tail', never 'only the k most likely') are borderline in every system where they occur, as are the syllabus baselines' q03 install methods.",
-    "Labelled by the developers, not blind to the system; see docs/report.md, Limitations."
+    "Labelled during development with the AI coding assistant (Claude), which re-read each answer against the reference and the lecture text; not blind to the system. See docs/report.md, Section 8."
   ],
   "rag__ollama__llama3.1-8b__hybrid": {
     "q19": {
@@ -421,7 +421,7 @@
     },
     "q08": {
       "verdict": "partial",
-      "why": "generic 'multiple models'; no retrievers, tools or real-time retrieval (main metric passed it)",
+      "why": "generic 'multiple models'; no retrievers, tools or real-time retrieval (the main metric passed it before the question review)",
       "answer_sha1": "2df78ab5cc1f",
       "borderline": false
     },

@@ -1,6 +1,6 @@
 # Design log
 
-This file records the decisions we made and why, step by step. It is the raw material for the report's "Method" section.
+This file records the decisions we made and why, step by step. It is the raw material for the report (docs/report.md), Sections 3–7.
 
 ## Goals (from the proposal, refined)
 
@@ -282,12 +282,12 @@ After Step 6 we asked an AI model (Claude, in a separate session with no stake i
 | **The headline 97% included an answer we knew was wrong** (we had hand-checked only where dense and hybrid differed). | Every failed answer in every Llama run re-read by hand, plus all passes of the main and no-course runs (`eval/hand_labels.json`). Both automatic and hand scores reported. |
 | **The relevance check never declined a question**, so "two independent abstention layers" was not true. | Said so, and ran an ablation with the check off: same results. |
 | **The reproduce instructions re-ran nothing** (results resume by file name) and covered 2 of 5 configurations. | `scripts/run_evaluation.sh` runs every configuration, then judge v2, and records code version, model digest and timings. |
-| **Key facts were loose:** some matched inside other words or just repeated the question. | Word-start matching, 11 key-fact lists tightened, a test that no key fact repeats the question. |
+| **Key facts were loose:** some matched inside other words or just repeated the question. | Word-start matching (later replaced by whole-word matching in the question review), 11 key-fact lists tightened, a test that no key fact repeats the question. |
 | **Citation handling broke code:** `outputs[0]` was read as a citation, and renumbering could crash. | Citations are only parsed outside code spans (tested). |
 | **Two refusal detectors** (assistant and evaluation) disagreed on hedged refusals. | One shared detector, `refusal.py`. |
 | Stale documentation, notebook outputs showing local paths, missing notebook dependencies. | Fixed; notebooks re-executed on the final knowledge base. |
 
-The pre-audit results are archived in `eval/archive/results_before_audit/`. The conclusions did not change direction, but the numbers did: hybrid is 95% by the automatic metric and 97% by hand, the no-course baseline 47% and 61%.
+The pre-audit results are archived in `eval/archive/results_before_audit/`. The conclusions did not change direction, but the numbers did: hybrid is 95% by the automatic metric and 97% by hand, the no-course baseline 47% and 61% (automatic figures as of the audit; the later question review moved them to 97% and 50%).
 
 ### Statistics
 With 38 + 12 questions we now report 95% Wilson intervals and exact McNemar tests (`eval/analysis.py`). Only course vs no course is significant (p < 0.001); hybrid vs dense is not (4 vs 1 disagreements, p = 0.38).

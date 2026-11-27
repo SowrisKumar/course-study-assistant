@@ -5,6 +5,7 @@
 Endpoints:
     GET  /          what this is
     GET  /health    is the language model reachable? which model, retriever, knowledge base
+                    (indexed_documents: 495 of the 538 documents; title-only slides are not indexed)
     POST /ask       {"question": "..."}  -> answer with sources, or "not covered"
     POST /explain   {"topic": "..."}     -> a simpler explanation of a course topic
     POST /quiz      {"topic": "..."}     -> a 3-question practice quiz
@@ -29,6 +30,8 @@ from typing import Literal
 
 import httpx
 from fastapi import FastAPI, HTTPException
+
+from . import quiet  # noqa: F401  (clean server logs: no progress bars or library notices)
 from pydantic import BaseModel, Field
 
 from .assistant import DEFAULT_RETRIEVER, AssistantResult, StudyAssistant
@@ -135,7 +138,8 @@ def create_app(bot: StudyAssistant | None = None) -> FastAPI:
         check_reachable(bot)
         chunks = getattr(bot.retriever, "chunks", [])
         return {"status": "ok", "backend": backend, "model": bot.llm.model, "retriever": retriever_name,
-                "verify": verify or "off", "chunks": len(chunks), "documents": len({c.doc_id for c in chunks})}
+                "verify": verify or "off", "chunks": len(chunks),
+                "indexed_documents": len({c.doc_id for c in chunks})}
 
     @app.post("/ask", response_model=Reply, response_model_exclude_none=True)
     def ask_question(q: Question) -> Reply:

@@ -104,7 +104,7 @@ A student who doesn't know the term needs meaning-based retrieval.
 - Ollama / Llama 3.1 8B (local, used for all results)
 - flan-t5 (the class model, as a weak baseline)
 
-All run at temperature 0 with a fixed seed. Re-runs reproduced the evaluation answers we checked byte for byte, but this isn't guaranteed: some long free-form answers (e.g. a "simplify" explanation in notebook 04) came out worded differently on a re-run. Rate limits are retried with backoff.
+All run at temperature 0 with a fixed seed. Re-runs reproduced the evaluation answers we checked byte for byte, but this isn't guaranteed: some long free-form answers (e.g. a "simplify" explanation in notebook 04) came out worded differently on a re-run, and once without a citation, which the assistant then flags as uncited. Rate limits are retried with backoff.
 
 **The workflow** (`assistant.py`, LangGraph):
 
@@ -180,7 +180,9 @@ Those checks caught mistakes in our own drafts. After the audit we also replaced
 - **So the main metric requires both** the grader's verdict *and* at least half the key facts.
 - **This metric was designed after we had seen first results**, so it is not a pre-registered measure. We report all three versions side by side below.
 
-**Hand check.** The grader was also inconsistent: two nearly identical answers to q02 (hybrid and dense runs) scored 2 and 1. So we re-read, against the reference and the lecture, **every answer the main metric marked as not correct**, for all Llama configurations. We also re-read all answers it marked correct for the main system and the three no-course baselines; only two passes of the lenient-syllabus baseline were overturned (both to partial). Every verdict and its reason is in `eval/hand_labels.json`, tied to a hash of the exact answer it judged, so a re-run never inherits old verdicts. We are the system's developers, so this check is not blind.
+**Hand check.** The grader was also inconsistent: two nearly identical answers to q02 (hybrid and dense runs) scored 2 and 1. So **every answer the main metric marked as not correct**, in all Llama configurations, was re-read against the reference and the lecture. So were all the answers it marked correct for the main system and the three no-course baselines; one of those passes is overturned (q34 of the lenient-syllabus baseline, to partial; two before the question review). The re-reading was done during development with the AI coding assistant (see the note on AI use, Section 8).
+
+`eval/hand_labels.json` records every overturned or borderline verdict with its reason; passes that were confirmed on re-reading aren't listed. Each label is tied to a hash of the exact answer it judged, so a re-run never inherits old verdicts. The check was made by the people (and tool) that built the system, so it is not blind.
 
 **Two borderline answers.** We gave two of the main system's answers the benefit of the doubt. For q02 it uses the general definition of an intrinsic hallucination ("unfaithful to the source") rather than the course's ("wrongly summarises the source"). For q29 it repeats the practical's line that top-k "truncates the long tail", but never says that sampling is limited to the k most likely tokens. The same answers in the other configurations are treated the same way. The **strict reading** counts them as wrong; both readings are reported below. A blind second labeller would settle these better than we can.
 
@@ -214,7 +216,7 @@ Hand-corrected scores with 95% Wilson intervals, and paired tests against the ma
 
 **What the results show:**
 - **The course materials make the assistant both more correct and more honest.** This is the one difference the test set is large enough to establish. The model *without* the materials confidently answers 8 of the 10 near-miss and trap questions (PPO, DPO, FID, …), so a student would wrongly believe those topics were taught. It also refuses one of the five questions only the course can answer (the MIT/Stanford productivity study, q01), and gets course-specific facts wrong (Conda instead of `uv`; invented evaluation "tiers").
-- **The automatic metric and the hand check now agree for the main system** (37/38). For the others the automatic metric under-counts by up to 4 questions (dense 3, no course 4), mostly key-fact lists too strict for a correct paraphrase. The ranking of systems is the same either way.
+- **The automatic metric and the hand check now agree for the main system** (37/38). For the others the automatic metric under-counts by up to 4 questions in the main comparison (dense 3, no course 4; 6 for the lenient-syllabus baseline), mostly key-fact lists too strict for a correct paraphrase. The ranking of systems is the same either way.
 - **Hybrid vs dense is not resolved by this test set.** Hybrid wins 4 questions and loses 1 (p = 0.38). Hybrid is the default because it never wrongly refused, but it was chosen on these questions, so its numbers are slightly optimistic. Dense is the unselected baseline.
 - **The LLM relevance check did nothing measurable.** In every run with the similarity floor on (the default) it accepted at least one passage for every question; it never declined. (With the floor turned off it did decline one off-topic question, Wimbledon.) All 12 abstentions came from the similarity floor (the 2 off-topic questions) and the answer prompt (the 10 others). With the check turned off, the results were the same within one question each way: one answer got better, one worse. It costs one LLM call per question (14 vs 10 s per answer).
 - **Retrieval is not the bottleneck here.** Both retrievers put the right lecture (or lab) in the top 3 passages for all 38 covered questions, so the remaining errors come from generation.
@@ -333,8 +335,9 @@ So concept is the better variant, chosen on development data only. Both were the
 
 - **Small test set:** 38 + 12 questions, so one question moves a score by 2.6 / 8 points, and only large differences (course vs no course) are statistically clear.
 - **The grader is the same 8B model as the answerer.** It is noisy, hence the combined metric and the hand check. A stronger, independent grader (Gemini or GPT; both are supported by the code) would make the numbers more trustworthy.
-- **The main metric, the hand check and the question review's corrections all came after seeing results,** and the hand labels were made by the developers, not blind. Two borderline labels move the headline from 92% to 97%; both readings are reported.
+- **The main metric, the hand check and the question review's corrections all came after seeing results,** and the hand labels were made during development with the AI coding assistant, not blind. Two borderline labels move the headline from 92% to 97%; both readings are reported.
 - **Hybrid retrieval was selected on the evaluation set.**
+- **One run per configuration.** Answers are at temperature 0, so we didn't repeat runs; run-to-run variation (see Section 5) is not measured.
 - **The paraphrased evaluation questions were easier** than the development ones.
 - **The questions and reference answers were drafted with AI assistance** and checked automatically against the course text. An AI-assisted review then flagged 16 questions (`eval/QUESTION_REVIEW.md`). Sowris Kumar Sripathy reviewed those 16 and agreed with the six fixes and with leaving the ten wording-only ones as they are. No one outside the team has reviewed the question set.
 - **Off-topic questions that match an example prompt inside the course can slip through.** "What is the capital of France?" is an example prompt on a slide of the extended Lecture 11 deck, so it scores 0.43 (above the floor), the relevance check accepts that slide, and the assistant answers about the slide instead of declining. The evaluation's off-topic questions (sourdough, Wimbledon, and the Everest trap) don't do this, but a demo can.
@@ -343,10 +346,10 @@ So concept is the better variant, chosen on development data only. Both were the
 
 **Note on AI use.** We built this project with AI assistance, and we disclose it:
 - **Development:** an AI coding assistant (Claude, via Claude Code) wrote much of the code, the first drafts of the evaluation questions and reference answers, the notebooks and this write-up, working step by step under our direction.
-- **Reviews:** the project was reviewed twice by Claude in separate sessions. These were AI-assisted reviews, not independent human audits. Their findings and our fixes are summarised in `docs/design.md` ("Audit and final re-run", "Second review").
+- **Reviews:** the project and its question set were reviewed by Claude in separate sessions. These were AI-assisted reviews, not independent human audits. Their findings and our fixes are summarised in `docs/design.md`, and the question review is in `eval/QUESTION_REVIEW.md`.
 - **In the system and its evaluation:** Llama 3.1 8B answers the questions and also grades them (LLM-as-judge).
 
-The hand labels in `eval/hand_labels.json` were produced in the same AI-assisted way and have not yet been checked by a second, independent person.
+The hand labels in `eval/hand_labels.json` were made with the AI coding assistant, which re-read each answer against its reference and the lecture text during development. No one outside the team has checked them.
 
 ## 9. How to run
 

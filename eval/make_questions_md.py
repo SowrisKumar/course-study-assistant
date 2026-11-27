@@ -3,9 +3,12 @@
     uv run python eval/make_questions_md.py
 """
 
+import argparse
 import json
 from collections import Counter
 from pathlib import Path
+
+argparse.ArgumentParser(description=__doc__.splitlines()[0]).parse_args()  # --help prints this and exits
 
 HERE = Path(__file__).parent
 qs = [json.loads(line) for line in open(HERE / "questions.jsonl") if line.strip()]

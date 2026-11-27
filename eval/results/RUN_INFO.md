@@ -36,3 +36,10 @@ Judge v2 was then re-run with `--rejudge` (it only scores answers that have no v
 | Judge v2 for the new runs | 9 |
 | …syllabus, lenient wording (code 902ebee) | 7 |
 | Judge v2 for it | 2 |
+
+## Re-scored after the question review
+- code: git 31f816c
+- `evaluation --rescore`: six questions corrected and whole-word key-fact matching (eval/QUESTION_REVIEW.md).
+  Key-fact recall and citation scores were recomputed from the saved answers; no model was asked again.
+  Original scores: eval/archive/before_question_review/.
+
