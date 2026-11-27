@@ -336,7 +336,7 @@ So concept is the better variant, chosen on development data only. Both were the
 - **The main metric, the hand check and the question review's corrections all came after seeing results,** and the hand labels were made by the developers, not blind. Two borderline labels move the headline from 92% to 97%; both readings are reported.
 - **Hybrid retrieval was selected on the evaluation set.**
 - **The paraphrased evaluation questions were easier** than the development ones.
-- **The questions and reference answers were drafted with AI assistance** and checked automatically against the course text, and reviewed by an AI-assisted check (`eval/QUESTION_REVIEW.md`), but not yet by a person. Sowris Kumar Sripathy reviewing the flagged questions is the next step.
+- **The questions and reference answers were drafted with AI assistance** and checked automatically against the course text. An AI-assisted review then flagged 16 questions (`eval/QUESTION_REVIEW.md`). Sowris Kumar Sripathy reviewed those 16 and agreed with the six fixes and with leaving the ten wording-only ones as they are. No one outside the team has reviewed the question set.
 - **Off-topic questions that match an example prompt inside the course can slip through.** "What is the capital of France?" is an example prompt on a slide of the extended Lecture 11 deck, so it scores 0.43 (above the floor), the relevance check accepts that slide, and the assistant answers about the slide instead of declining. The evaluation's off-topic questions (sourdough, Wimbledon, and the Everest trap) don't do this, but a demo can.
 - **Image-only content (equations, diagrams) is not in the knowledge base.**
 - **Speed:** about 14 s per answer on a laptop with a local 8B model. A cloud model would be faster and likely more accurate, at a cost.
@@ -366,7 +366,7 @@ docker compose up --build                       # the HTTP API in a container: h
 
 ## 10. Future work
 
-- **A stronger, independent grader**, and a second human reviewer for the question set.
+- **A stronger, independent grader**, and a reviewer outside the team for the question set.
 - **Replace or remove the relevance check:** it adds a model call and, with an 8B model and the floor on, never declines (the ablation shows nothing is lost without it).
 - **Caption image-only slides** (equations, diagrams) with a vision model, so they become searchable.
 - **Harder paraphrase questions**, and merging rank-fusion votes per notebook section (split sections caused one hybrid miss on the development set).

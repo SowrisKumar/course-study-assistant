@@ -1,6 +1,6 @@
 # Review of the 50 evaluation questions
 
-**What this is:** an AI-assisted review (Claude, in a separate session with no part in writing the questions) of `eval/questions.jsonl`. It is not an independent human review; a second person checking the flagged questions is still the next step.
+**What this is:** an AI-assisted review (Claude, in a separate session with no part in writing the questions) of `eval/questions.jsonl`, followed by a human review of the flagged questions by Sowris Kumar Sripathy (see "Human review" below). No one outside the team has reviewed the set.
 
 - **Reviewed:** commit `138b6e7`
 - **Fixes applied:** commit `31f816c`
@@ -17,6 +17,14 @@
 
 - **No not-covered topic is actually taught.** Three are partly touched: GRPO (the RL practical computes a mean/std-normalised advantage), PPO (named in the extended Lecture 11 deck, never explained) and L1/L2 (only `L1Loss` and `weight_decay` in code). All three are still fair near-misses.
 - **The fixes change only the automatic metric and the citation scores.** The hand-checked scores, the strict reading, the significance tests and the ranking of systems are unchanged, because the hand labels already judged these answers by reading them.
+
+## Human review
+
+On 27 November 2026, Sowris Kumar Sripathy reviewed the 16 questions this review flagged:
+- the six grading problems (q07, q08, q13, q20, q29, q32)
+- the ten wording-only notes (q02, q04, q06, q09, q16, q26, q28, q34, q37, q47)
+
+Sowris agreed with all six fixes, and with leaving the ten wording-only questions unchanged. No further changes were made.
 
 ## How the review was done
 
