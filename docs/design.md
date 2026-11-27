@@ -177,7 +177,7 @@ First observations with Llama 3.1 8B (7 examples in notebook 04; measured proper
 |---|---|---|
 | Answerable, uses the course's term | 30 | Spread over Lectures 1–11 and the add-on labs |
 | Answerable, paraphrased | 8 | The student doesn't know the term (Step 2 showed this is where retrieval struggles) |
-| Not covered, near-miss | 9 | Sounds like course content but isn't in it: vanishing gradients, PPO, VQ-VAE, Stable Diffusion, MoE, FID, L1/L2, DPO, GRPO |
+| Not covered, near-miss | 9 | Sounds like course content but isn't in it: vanishing gradients (replaced by label smoothing after the audit), PPO (now: its clipped objective), VQ-VAE, Stable Diffusion, MoE, FID, L1/L2, DPO, GRPO |
 | Not covered, trap | 1 | Everest's boiling point: "Everest" appears in toy demo data, but the answer doesn't |
 | Not covered, off-topic | 2 | Sourdough, Wimbledon |
 
@@ -304,7 +304,7 @@ The audit also listed cheaper ideas to make the results more convincing. We did 
 - **Experiment log.** Every run is appended to `eval/experiment_log.csv`: one row per build and configuration, with commit, knowledge-base size, question-set hash, model digest, and automatic and hand scores. Notebook 06 charts it. The pre-audit build is backfilled from the archive.
 - **Course-specific vs general-knowledge split.** Five questions need this course's own material; the course still helps a lot on the other 33 (97% vs 70% by hand, p = 0.012). Classified after seeing results, so the audit's six-question list is reported as a check.
 - **Fairer baseline: the plain model sees the syllabus** (lecture and lab titles with their section titles, built from the knowledge base by `course_outline()`). With a strict instruction it refused 32 of the 38 covered questions (11% correct, 100% declined); with a lenient one, 42% correct and 83% declined. Either way it handles about half the 50 questions or fewer, vs 98% for the assistant. Both wordings are reported: helping the baseline is the conservative direction.
-- **More ablations:** similarity floor off (no change; the answer prompt also catches off-topic questions), 3 vs 8 passages (less context costs accuracy, more costs time). Nothing beats the default significantly.
+- **More ablations:** similarity floor off (no change in results: of the two off-topic questions, the answer prompt caught one and the relevance check the other), 3 vs 8 passages (less context costs accuracy, more costs time). Nothing beats the default significantly.
 - **Real sessions in the report** (`docs/examples.md`), the workflow as an image (`docs/figures/make_workflow.py`) so it survives PDF export, the embedding model pinned to a fixed Hugging Face revision, and the query embedded once per search instead of twice.
 
 Still open, and needing people or keys: an independent grader (Gemini key), a second human grader with an agreement score, and Alfonso reviewing the question set.
@@ -335,3 +335,21 @@ A second AI-assisted review (Claude, separate session) re-checked the finished p
 - **What isn't:** the language model. On a Mac, Ollama inside Docker can't use the GPU, so by default the container calls Ollama on the host (`host.docker.internal`). Gemini/OpenAI work with a key, and an optional `ollama` service runs everything in Docker.
 - **CPU-only PyTorch on Linux** (`[tool.uv.sources]` in `pyproject.toml`): the default Linux wheels pull several GB of CUDA libraries a CPU container never uses. macOS installs are unchanged.
 - **Separate Docker variable for the Ollama address.** Compose uses its own `DOCKER_OLLAMA_HOST`, so `OLLAMA_HOST=localhost` in `.env` (right for the CLI) can't leak into the container, where localhost is the container itself.
+
+## Final audit
+
+A last AI-assisted review (Claude, separate session) cloned the repo fresh from GitHub, with an empty model cache, and confirmed:
+- it runs with nothing outside the repo: `uv sync`, all tests, all six notebooks, the CLI, the API and `docker compose up --build`
+- every number in the README and the report matches the analysis output
+- a 2-question evaluation reproduced the saved answers byte for byte
+
+It found, and we fixed:
+- **"What is the capital of France?" gets answered.** The extended Lecture 11 deck uses it as an example prompt, so it passes the similarity floor and the relevance check. We can't fix this without re-running the evaluation, so it is now a stated limitation, and notebook 04 shows it as a known failure.
+- **Notebook 04 was stale** (from before the Lecture 11 deck and the verify node). It now runs on the default system, and its text matches the outputs.
+- **"The relevance check never declined" was too broad.** With the similarity floor off, it declined Wimbledon. The claim now says "with the floor on (the default)".
+- **The API's 503 only held before the first request.** It now checks the model is reachable before every answer and on `/health`, and turns errors mid-answer into 503 (tested).
+- Smaller fixes:
+  - `VERIFY` accepts on/off/concept/strict and rejects anything else at startup.
+  - The evaluation CLI requires `--out` when answering, and an explicit `--verify` value.
+  - The CLI no longer prints library warnings and progress bars.
+  - Wording and stale counts fixed; the README reordered, with its requirements spelled out.

@@ -10,20 +10,22 @@ from study_assistant.api import create_app
 from study_assistant.assistant import StudyAssistant
 from study_assistant.chunking import chunk_documents
 from study_assistant.ingest.schema import Document
-from study_assistant.llm import LLM, LLMResponse, LLMUnavailable
+from study_assistant.llm import LLM, LLMResponse, LLMUnavailable, RetryableError
 from study_assistant.retrieval import build_retriever
 
 
 class FakeLLM(LLM):
     name = "fake"
 
-    def __init__(self, answer="Max pooling keeps the largest value in each window [1].", fail=False):
+    max_retries, base_delay_s = 1, 0.0  # don't sleep in tests
+
+    def __init__(self, answer="Max pooling keeps the largest value in each window [1].", fail=None):
         super().__init__("fake-model")
-        self.answer, self.fail = answer, fail
+        self.answer, self.fail = answer, fail  # fail: an exception to raise when answering
 
     def _generate(self, prompt, system, max_tokens, temperature):
         if self.fail:
-            raise LLMUnavailable("Ollama is not running")
+            raise self.fail
         text = "RELEVANT: 1" if system == prompts.GRADER_SYSTEM else self.answer
         return LLMResponse(text, self.name, self.model, 0.0)
 
@@ -68,5 +70,35 @@ def test_bad_input_and_unavailable_model(retriever):
     c = client(retriever, FakeLLM())
     assert c.post("/ask", json={"question": ""}).status_code == 422
     assert c.get("/health").json()["status"] == "ok"
-    r = client(retriever, FakeLLM(fail=True)).post("/ask", json={"question": "What does max pooling do?"})
-    assert r.status_code == 503 and "not available" in r.json()["detail"]
+    r = client(retriever, FakeLLM(fail=LLMUnavailable("Ollama is not running"))).post(
+        "/ask", json={"question": "What does max pooling do?"})
+    assert r.status_code == 503 and "Ollama is not running" in r.json()["detail"]
+
+
+def test_model_dropping_mid_answer_gives_503(retriever):
+    llm = FakeLLM(fail=RetryableError("connection refused"))  # e.g. Ollama stopped after the server started
+    r = client(retriever, llm).post("/ask", json={"question": "What does max pooling do?"})
+    assert r.status_code == 503 and "connection refused" in r.json()["detail"]
+
+
+class StoppedOllama(FakeLLM):
+    def _check_available(self):
+        raise LLMUnavailable("Ollama is not running at http://localhost:11434. Start the Ollama app.")
+
+
+def test_health_and_ask_check_the_model_is_still_reachable(retriever):
+    c = client(retriever, StoppedOllama())
+    assert c.get("/health").status_code == 503
+    assert c.post("/ask", json={"question": "What does max pooling do?"}).status_code == 503
+
+
+@pytest.mark.parametrize("value,expected", [("off", "off"), ("on", "concept"), ("Strict", "strict")])
+def test_verify_setting(retriever, monkeypatch, value, expected):
+    monkeypatch.setenv("VERIFY", value)
+    assert client(retriever, FakeLLM()).get("/health").json()["verify"] == expected
+
+
+def test_bad_verify_setting_fails_at_startup(monkeypatch):
+    monkeypatch.setenv("VERIFY", "maybe")
+    with pytest.raises(ValueError, match="VERIFY"):
+        create_app()

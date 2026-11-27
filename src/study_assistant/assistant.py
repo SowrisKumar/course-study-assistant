@@ -11,7 +11,9 @@
        │
     generate      (answer / simple explanation / quiz, citing passages as [n])
        │
-    cite          (keep only real citations, map [n] -> lecture & slide/section)
+    cite          (keep only real citations, map [n] -> lecture & slide/section;
+       │           a "not covered" reply is marked as declined)
+    verify        (optional support check, off by default; fails -> marked as declined)
        │
       END
 

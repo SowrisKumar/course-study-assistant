@@ -21,7 +21,7 @@ Over all 50 questions the assistant handled 49 correctly and the plain model 27.
 
 Four findings matter beyond this project:
 - **An 8B LLM is an unreliable grader**, in both directions. We had to redesign the grading, and still read every failed answer by hand.
-- **Our LLM relevance check did nothing measurable.** It never declined a question; all abstentions came from the answer prompt and a similarity floor. Turning it off gave the same results.
+- **Our LLM relevance check did nothing measurable.** In the default system it never declined a question; all abstentions came from the answer prompt and a similarity floor. Turning it off gave the same results.
 - **The baseline was not simply set up to lose.** The course helps on general-knowledge questions too (97% vs 70%, or 91% vs 70% on the strict reading, where the difference is no longer statistically significant), and giving the plain model the course syllabus doesn't close the gap: it only trades wrong answers for refusals (Section 6).
 - **A post-hoc support check found nothing left to catch on the evaluation set** (Section 7). Our first assessment of its two variants was wrong until we labelled the development answers by hand.
 
@@ -67,10 +67,10 @@ We turned 48 course files into **538 documents**, each a natural unit with citat
 - **Notebook and lecture numbering don't match.** For example, `Module_4_Practical_VAE.ipynb` is the practical for **Lecture 5**. An explicit catalogue maps each notebook to its lecture by content, so citations point students to the right lecture.
 - **pypdf removed spaces in code** (`importtorch.nnasnn`), so we switched to PyMuPDF.
 - **Position-based reading order** was needed to keep each code listing next to its heading.
-- **43 title and section-divider slides** are flagged and kept out of the index, so they don't out-rank the slides that explain the topic.
+- **43 title and section-divider documents** (42 slides and one notebook section) are flagged and kept out of the index, so they don't out-rank the slides that explain the topic.
 - **The extended Lecture 11 deck was missing at first.** An AI-assisted review of the project (see the note on AI use, Section 8) found it. It matters: it names PPO, which one of our "not covered" questions had asked about (Section 6).
 
-The repo does not include the original course files (slides, notebooks, PDFs), but it **does include their extracted text** (`data/processed/documents.jsonl`, and quotations of it in the saved answers under `eval/results/`), so that the project runs from a clone. That text is the instructor's material; whether the repository should be public is a question for the instructor.
+The repo does not include the original course files (slides, notebooks, PDFs), but it **does include their extracted text** (`data/processed/documents.jsonl`), and quotations of it appear in the saved answers (`eval/results/`, `eval/archive/`, `eval/support_check/`), the notebook outputs and the question set (`eval/QUESTIONS.md`), so that the project runs from a clone. That text is the instructor's material; whether the repository should be public is a question for the instructor.
 
 **Limitations:**
 - Equations and diagrams that are images are lost (e.g. the VAE loss formula).
@@ -180,7 +180,7 @@ Those checks caught mistakes in our own drafts. After the audit we also replaced
 - **So the main metric requires both** the grader's verdict *and* at least half the key facts.
 - **This metric was designed after we had seen first results**, so it is not a pre-registered measure. We report all three versions side by side below.
 
-**Hand check.** The grader was also inconsistent: two nearly identical answers to q02 (hybrid and dense runs) scored 2 and 1. So we re-read, against the reference and the lecture, **every answer the main metric marked as not correct**, for all Llama configurations. We also re-read all answers it marked correct for the main system and the no-course baseline; none of those were overturned. Every verdict and its reason is in `eval/hand_labels.json`, tied to a hash of the exact answer it judged, so a re-run never inherits old verdicts. We are the system's developers, so this check is not blind.
+**Hand check.** The grader was also inconsistent: two nearly identical answers to q02 (hybrid and dense runs) scored 2 and 1. So we re-read, against the reference and the lecture, **every answer the main metric marked as not correct**, for all Llama configurations. We also re-read all answers it marked correct for the main system and the three no-course baselines; only two passes of the lenient-syllabus baseline were overturned (both to partial). Every verdict and its reason is in `eval/hand_labels.json`, tied to a hash of the exact answer it judged, so a re-run never inherits old verdicts. We are the system's developers, so this check is not blind.
 
 **Two borderline answers.** We gave two of the main system's answers the benefit of the doubt. For q02 it uses the general definition of an intrinsic hallucination ("unfaithful to the source") rather than the course's ("wrongly summarises the source"). For q29 it repeats the practical's line that top-k "truncates the long tail", but never says that sampling is limited to the k most likely tokens. The same answers in the other configurations are treated the same way. The **strict reading** counts them as wrong; both readings are reported below. A blind second labeller would settle these better than we can.
 
@@ -212,10 +212,10 @@ Hand-corrected scores with 95% Wilson intervals, and paired tests against the ma
 | Llama, no course | 61% [45–74] | 33% [14–61] | 54% [40–67] | 23 / 1 | < 0.001 |
 
 **What the results show:**
-- **The course materials make the assistant both more correct and more honest.** This is the one difference the test set is large enough to establish. The model *without* the materials confidently answers 8 of the 10 near-miss and trap questions (PPO, DPO, FID, …), so a student would wrongly believe those topics were taught. It also refuses the one question only the course can answer (the MIT/Stanford productivity study), and gets course-specific facts wrong (Conda instead of `uv`; invented evaluation "tiers").
+- **The course materials make the assistant both more correct and more honest.** This is the one difference the test set is large enough to establish. The model *without* the materials confidently answers 8 of the 10 near-miss and trap questions (PPO, DPO, FID, …), so a student would wrongly believe those topics were taught. It also refuses one of the five questions only the course can answer (the MIT/Stanford productivity study, q01), and gets course-specific facts wrong (Conda instead of `uv`; invented evaluation "tiers").
 - **The automatic metric under-counts every system,** by 1 question (main) to 5 (dense, no course). Most misses are key-fact lists too strict for a correct paraphrase. The ranking of systems is the same either way.
 - **Hybrid vs dense is not resolved by this test set.** Hybrid wins 4 questions and loses 1 (p = 0.38). Hybrid is the default because it never wrongly refused, but it was chosen on these questions, so its numbers are slightly optimistic. Dense is the unselected baseline.
-- **The LLM relevance check did nothing measurable.** In every Llama run it accepted at least one passage for every question; it never declined. All 12 abstentions came from the similarity floor (the 2 off-topic questions) and the answer prompt (the 10 others). With the check turned off, the results were the same within one question each way: one answer got better, one worse. It costs one LLM call per question (14 vs 10 s per answer).
+- **The LLM relevance check did nothing measurable.** In every run with the similarity floor on (the default) it accepted at least one passage for every question; it never declined. (With the floor turned off it did decline one off-topic question, Wimbledon.) All 12 abstentions came from the similarity floor (the 2 off-topic questions) and the answer prompt (the 10 others). With the check turned off, the results were the same within one question each way: one answer got better, one worse. It costs one LLM call per question (14 vs 10 s per answer).
 - **Retrieval is not the bottleneck here.** Both retrievers put the right lecture (or lab) in the top 3 passages for all 38 covered questions, so the remaining errors come from generation.
 - **flan-t5 is too small for this task.** RAG lifts it from 0% to 24%, but it writes a few words and almost never cites. Its runs were not hand-checked.
 
@@ -234,7 +234,7 @@ Each row changes one thing in the main system. Correctness is by hand; p is the 
 
 \* It answered the L1/L2 near-miss, but only to say the course "does not mention" it and to point to dropout, with a citation. That is effectively a decline that the refusal detector counts as an answer.
 
-- **Nothing beats the default significantly**, and two components are dead weight on this set: the **relevance check** never declines anything, and the **similarity floor** only saves LLM calls on the two off-topic questions (the answer prompt catches them too).
+- **Nothing beats the default significantly**, and two components are dead weight on this set: the **relevance check** never declines anything in the default system, and the **similarity floor** only saves LLM calls on the two off-topic questions (without the floor, the answer prompt caught one and the relevance check the other).
 - **The answer prompt does all the real abstention work.**
 - **Less context costs accuracy** (q17 becomes wrong, q23 loses an input); more context costs time. 8 chunks / 5 passages is a reasonable middle, not a proven optimum.
 
@@ -307,6 +307,7 @@ So concept is the better variant, chosen on development data only. Both were the
 - **Hybrid retrieval was selected on the evaluation set.**
 - **The paraphrased evaluation questions were easier** than the development ones.
 - **The questions and reference answers were drafted with AI assistance** and checked automatically against the course text, but not yet reviewed by a second person. Alfonso reviewing `eval/QUESTIONS.md` is the next step.
+- **Off-topic questions that match an example prompt inside the course can slip through.** "What is the capital of France?" is an example prompt on a slide of the extended Lecture 11 deck, so it scores 0.43 (above the floor), the relevance check accepts that slide, and the assistant answers about the slide instead of declining. The evaluation's off-topic questions (sourdough, Wimbledon, Everest) don't do this, but a demo can.
 - **Image-only content (equations, diagrams) is not in the knowledge base.**
 - **Speed:** about 14 s per answer on a laptop with a local 8B model. A cloud model would be faster and likely more accurate, at a cost.
 
@@ -321,7 +322,7 @@ The hand labels in `eval/hand_labels.json` were produced in the same AI-assisted
 
 ```bash
 git clone https://github.com/SowrisKumar/course-study-assistant.git && cd course-study-assistant
-uv sync && uv run pytest                        # 130+ tests; the first run downloads the embedding model
+uv sync && uv run pytest                        # ~140 tests (one needs Ollama, skipped without it); first run downloads the embedding model
 ollama pull llama3.1:8b                         # local model (or add a Gemini/OpenAI key to .env)
 uv run python -m study_assistant.chat -v        # chat with the assistant
 ./scripts/run_evaluation.sh                     # re-run every evaluation configuration (~2¾ h on an M2)
@@ -336,7 +337,7 @@ docker compose up --build                       # the HTTP API in a container: h
 ## 10. Future work
 
 - **A stronger, independent grader**, and a second human reviewer for the question set.
-- **Replace or remove the relevance check:** it adds a model call and, with an 8B model, never declines (the ablation shows nothing is lost without it).
+- **Replace or remove the relevance check:** it adds a model call and, with an 8B model and the floor on, never declines (the ablation shows nothing is lost without it).
 - **Caption image-only slides** (equations, diagrams) with a vision model, so they become searchable.
 - **Harder paraphrase questions**, and merging rank-fusion votes per notebook section (split sections caused one hybrid miss on the development set).
 - **Multi-turn conversation memory** for follow-up questions.

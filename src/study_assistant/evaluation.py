@@ -365,8 +365,7 @@ def main() -> None:
     p.add_argument("--retriever", default=None, help="retriever for the RAG system (default: the assistant's)")
     p.add_argument("--grading", choices=["llm", "threshold", "none"],
                    help="relevance check for the RAG system (default: llm; threshold for flan)")
-    p.add_argument("--verify", nargs="?", const="strict", choices=["strict", "concept"],
-                   help="turn on the support check (ablation); bare --verify = strict")
+    p.add_argument("--verify", choices=["strict", "concept"], help="turn on the support check (ablation)")
     p.add_argument("--no-floor", action="store_true", help="turn off the similarity floor (ablation)")
     p.add_argument("--context", choices=["small", "large"],
                    help="passages shown to the model (ablation): small = 4 chunks / 3 passages, large = 16 / 8 "
@@ -375,10 +374,16 @@ def main() -> None:
                    help="no-RAG baseline also sees the course outline (bare --syllabus = strict)")
     p.add_argument("--judge", default="ollama", help="backend for LLM-as-judge ('none' to skip)")
     p.add_argument("--limit", type=int, help="only the first N questions (smoke test)")
-    p.add_argument("--out", type=Path, default=RESULTS_DIR)
+    p.add_argument("--out", type=Path, help="results folder; required when answering questions, so a run never "
+                   "mixes into eval/results/ (the reported run). --report / --rejudge default to eval/results/")
     p.add_argument("--report", action="store_true", help="only print the summary of saved runs")
     p.add_argument("--rejudge", action="store_true", help="add judge-v2 scores (with course excerpts) to saved runs")
     args = p.parse_args()
+    if args.out is None:
+        if not (args.report or args.rejudge):
+            p.error("pass --out <folder> (e.g. --out eval/runs/my-run): saved answers in an existing folder are "
+                    "reused, and eval/results/ holds the run reported in docs/report.md")
+        args.out = RESULTS_DIR
 
     if args.rejudge:
         rejudge_v2(get_llm(args.judge), args.out)

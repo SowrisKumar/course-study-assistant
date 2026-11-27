@@ -13,10 +13,11 @@ Configuration (environment variables, or .env):
     LLM_BACKEND   ollama (default) | gemini | openai | flan
     OLLAMA_HOST   where Ollama runs (default http://localhost:11434; in Docker http://host.docker.internal:11434)
     RETRIEVER     hybrid (default) | dense | bm25 | tfidf
-    VERIFY        off (default) | concept | strict    the optional support check (report, Section 7)
+    VERIFY        off (default) | on (= concept) | concept | strict    the optional support check (report, Section 7)
 
 The assistant is built on the first request, not at import, so the server starts even if the model
-is not reachable yet; /health and the endpoints then say what is missing (HTTP 503).
+is not reachable yet. Before every answer (and on /health) a quick check confirms the model is still
+reachable; if not, or if it fails mid-answer, the API replies HTTP 503 with the reason.
 """
 
 from __future__ import annotations
@@ -26,11 +27,15 @@ import threading
 import time
 from typing import Literal
 
+import httpx
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from .assistant import DEFAULT_RETRIEVER, AssistantResult, StudyAssistant
-from .llm import LLMUnavailable, get_llm
+from .llm import LLMUnavailable, RetryableError, get_llm
+
+VERIFY_SETTINGS = {"off": None, "none": None, "false": None, "0": None,
+                   "on": "concept", "true": "concept", "1": "concept", "concept": "concept", "strict": "strict"}
 
 
 class Question(BaseModel):
@@ -73,7 +78,10 @@ def create_app(bot: StudyAssistant | None = None) -> FastAPI:
     """Build the API. Tests pass a ready-made assistant; the server builds one from the environment."""
     backend = os.getenv("LLM_BACKEND", "ollama")
     retriever_name = os.getenv("RETRIEVER", DEFAULT_RETRIEVER)
-    verify = os.getenv("VERIFY", "off").lower()
+    verify_setting = os.getenv("VERIFY", "off").strip().lower()
+    if verify_setting not in VERIFY_SETTINGS:
+        raise ValueError(f"VERIFY={verify_setting!r}: use off, on, concept or strict")
+    verify = VERIFY_SETTINGS[verify_setting]
     state: dict = {"bot": bot}
     lock = threading.Lock()  # one question at a time: a local model answers sequentially anyway
 
@@ -89,17 +97,27 @@ def create_app(bot: StudyAssistant | None = None) -> FastAPI:
                         raise HTTPException(503, f"The language model ({backend}) is not available: {exc}") from exc
                     grading = "threshold" if backend == "flan" else "llm"  # flan-t5 can't follow the grader format
                     state["bot"] = StudyAssistant(llm, build_retriever(retriever_name), grading=grading,
-                                                  verify=None if verify == "off" else verify)
+                                                  verify=verify)
         return state["bot"]
+
+    def check_reachable(bot: StudyAssistant) -> None:
+        """Fast check (a few seconds) that the model still answers, e.g. Ollama wasn't stopped after startup."""
+        check = getattr(bot.llm, "_check_available", None)  # Ollama: lists the pulled models
+        if check is not None:
+            try:
+                check()
+            except LLMUnavailable as exc:
+                raise HTTPException(503, f"The language model ({backend}) is not available: {exc}") from exc
 
     def ask(question: str, with_trace: bool) -> Reply:
         bot = assistant()
+        check_reachable(bot)
         start = time.perf_counter()
         try:
             with lock:
                 result = bot.ask(question)
-        except LLMUnavailable as exc:
-            raise HTTPException(503, f"The language model is not available: {exc}") from exc
+        except (LLMUnavailable, RetryableError, httpx.HTTPError) as exc:  # e.g. the model stopped mid-answer
+            raise HTTPException(503, f"The language model failed while answering: {exc}") from exc
         return _reply(result, time.perf_counter() - start, with_trace)
 
     app = FastAPI(title="Course Study Assistant",
@@ -114,9 +132,10 @@ def create_app(bot: StudyAssistant | None = None) -> FastAPI:
     @app.get("/health")
     def health() -> dict:
         bot = assistant()
+        check_reachable(bot)
         chunks = getattr(bot.retriever, "chunks", [])
         return {"status": "ok", "backend": backend, "model": bot.llm.model, "retriever": retriever_name,
-                "verify": verify, "chunks": len(chunks), "documents": len({c.doc_id for c in chunks})}
+                "verify": verify or "off", "chunks": len(chunks), "documents": len({c.doc_id for c in chunks})}
 
     @app.post("/ask", response_model=Reply, response_model_exclude_none=True)
     def ask_question(q: Question) -> Reply:

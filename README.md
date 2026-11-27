@@ -19,20 +19,51 @@ Team: Sowris Kumar Sripathy, Alfonso Garcia. Original proposal: [`docs/proposal.
 
 The gap isn't just course trivia: on the 33 general-knowledge questions it is 97% vs 70% (91% vs 70% on a strict reading). Giving the plain model the course syllabus doesn't close it either; it just trades wrong answers for refusals. Example sessions: [`docs/examples.md`](docs/examples.md).
 
+## Run it
+
+Requires [uv](https://docs.astral.sh/uv/) (it installs Python 3.12 itself) and about 2 GB of disk for the environment and the embedding model. To actually chat with the assistant you also need a language model: [Ollama](https://ollama.com) with Llama 3.1 8B (a 4.9 GB download) or a Gemini/OpenAI key. The Docker setup needs Docker Compose 2.24 or newer.
+
+```bash
+git clone https://github.com/SowrisKumar/course-study-assistant.git
+cd course-study-assistant
+uv sync
+uv run pytest
+```
+
+Everything needed is in the repo. The first run (tests included) needs internet once, to download the small embedding model (~90 MB) from Hugging Face. The knowledge base (the course materials' text, already extracted and cleaned) is `data/processed/documents.jsonl`. Walk through it in [`notebooks/01_ingest_explore.ipynb`](notebooks/01_ingest_explore.ipynb).
+
+### Language models
+
+The assistant can use any of four models. Local ones need no key; for cloud ones copy `.env.example` to `.env` and add a key.
+
+| Backend | Setup |
+|---|---|
+| `ollama` (Llama 3.1, local, free) | install [Ollama](https://ollama.com), then `ollama pull llama3.1:8b` |
+| `flan` (flan-t5, local, free) | nothing to set up; downloads about 1 GB on first use |
+| `gemini` (free tier) | `GEMINI_API_KEY` from [AI Studio](https://aistudio.google.com) |
+| `openai` (paid) | `OPENAI_API_KEY` |
+
+```bash
+uv run python -m study_assistant.llm --check
+uv run python -m study_assistant.llm -b ollama "What is a GAN?"
+```
+
 ## Try it
 
 ```bash
 uv run python -m study_assistant.chat            # chat in the terminal (uses local Llama 3.1 via Ollama)
 uv run python -m study_assistant.chat -v         # also show each step the assistant takes
-uv run python -m study_assistant.chat -b gemini "Quiz me on GANs"
+uv run python -m study_assistant.chat -b gemini "Quiz me on GANs"   # needs GEMINI_API_KEY in .env
 ```
 
 ```
 you> Why do transformers need positional encodings?
-Transformers need positional encodings because the self-attention mechanism ... is invariant to the order of the input tokens. ... [1]
+Transformers need positional encodings because they are permutation-equivariant, meaning they don't
+inherently understand the order of the input tokens. ... Without positional encodings, the model would
+treat "the dog bit the man" and "the man bit the dog" as the same input. [1]
 
 Sources:
-[1] Lecture 9 · Module 9 – Transformer Architecture and Advanced GAN, slide 6
+[1] Lecture 9 · Module 8 — Practical: Building a GPT from Scratch, cells 21-22 (6. Token and positional embeddings)
 
 you> What is mode collapse in GANs?
 This isn't covered in the course materials.
@@ -53,36 +84,7 @@ flowchart TD
     VER --> OUT[reply: answer + sources,<br/>or 'not covered' if declined]
 ```
 
-## Run it
-
-Requires [uv](https://docs.astral.sh/uv/).
-
-```bash
-git clone https://github.com/SowrisKumar/course-study-assistant.git
-cd course-study-assistant
-uv sync
-uv run pytest
-```
-
-Everything needed is in the repo. The first run (tests included) needs internet once, to download the small embedding model (~90 MB) from Hugging Face. The knowledge base (the course materials' text, already extracted and cleaned) is `data/processed/documents.jsonl`. Walk through it in [`notebooks/01_ingest_explore.ipynb`](notebooks/01_ingest_explore.ipynb).
-
-### Language models
-
-The assistant can use any of four models. Local ones need no key; for cloud ones copy `.env.example` to `.env` and add a key.
-
-| Backend | Setup |
-|---|---|
-| `ollama` (Llama 3.1, local, free) | install [Ollama](https://ollama.com), then `ollama pull llama3.1:8b` |
-| `flan` (flan-t5, local, free) | nothing |
-| `gemini` (free tier) | `GEMINI_API_KEY` from [AI Studio](https://aistudio.google.com) |
-| `openai` (paid) | `OPENAI_API_KEY` |
-
-```bash
-uv run python -m study_assistant.llm --check
-uv run python -m study_assistant.llm -b ollama "What is a GAN?"
-```
-
-### Reproducing the evaluation
+## Reproducing the evaluation
 
 ```bash
 ./scripts/run_evaluation.sh        # re-runs every configuration into a new eval/runs/<date>-<commit>/ folder
