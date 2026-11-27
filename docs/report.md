@@ -70,7 +70,7 @@ We turned 48 course files into **538 documents**, each a natural unit with citat
 - **43 title and section-divider documents** (42 slides and one notebook section) are flagged and kept out of the index, so they don't out-rank the slides that explain the topic.
 - **The extended Lecture 11 deck was missing at first.** An AI-assisted review of the project (see the note on AI use, Section 8) found it. It matters: it names PPO, which one of our "not covered" questions had asked about (Section 6).
 
-The repo does not include the original course files (slides, notebooks, PDFs), but it **does include their extracted text** (`data/processed/documents.jsonl`), and quotations of it appear in the saved answers (`eval/results/`, `eval/archive/`, `eval/support_check/`), the notebook outputs and the question set (`eval/QUESTIONS.md`), so that the project runs from a clone. That text is the instructor's material. The team decided to keep the repository public so that it runs from a clone.
+The repo does not include the original course files (slides, notebooks, PDFs), but it **does include their extracted text** (`data/processed/documents.jsonl`), and quotations of it appear in the saved answers (`eval/results/`, `eval/archive/`, `eval/support_check/`), the notebook outputs and the question set (`eval/QUESTIONS.md`), so that the project runs from a clone. That text is the instructor's material; the team decided to keep the repository public.
 
 **Limitations:**
 - Equations and diagrams that are images are lost (e.g. the VAE loss formula).

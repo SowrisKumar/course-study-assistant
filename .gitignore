@@ -26,3 +26,6 @@ data/cache/
 .DS_Store
 .vscode/
 .idea/
+
+# Built report PDF (scripts/make_report_pdf.py)
+submission/
