@@ -1,7 +1,7 @@
 """Step 5 – Evaluation: the assistant (RAG) vs a chatbot that can't see the course (no-RAG).
 
 Question set: eval/questions.jsonl, 50 questions written for this step (none reused from
-development): 38 answerable (30 using the course's terms, 8 paraphrased) and 12 not covered
+development): 38 answerable (31 using the course's terms, 7 paraphrased) and 12 not covered
 (9 near-misses that sound like course topics, 1 trap, 2 off-topic). Every reference answer was written
 from the cited slide/notebook, and a check confirmed each key fact appears in the gold material
 and each not-covered topic does not appear anywhere in the course.

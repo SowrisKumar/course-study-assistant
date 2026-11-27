@@ -12,7 +12,7 @@ On 50 new evaluation questions (38 the course covers, 12 it doesn't), compared w
 |---|---|---|
 | Covered questions answered correctly (checked by hand) | **97%** (37/38) | 61% (23/38) |
 | …on a strict reading of two borderline answers | 92% (35/38) | 61% |
-| …by the automatic metric alone | 95% | 47% |
+| …by the automatic metric alone (after the question review, Section 6) | 97% (95% before) | 50% (47% before) |
 | Answers citing the right lecture | **97%** | — |
 | Uncovered questions declined | **100%** (12/12) | 33% (4/12) |
 | …of which topics that *sound* like course content (near-misses + a trap) | **100%** (10/10) | 20% (2/10) |
@@ -149,8 +149,8 @@ Try it: `uv run python -m study_assistant.chat -v`.
 
 | Type | Count |
 |---|---|
-| Answerable, using the course's terms | 30 |
-| Answerable, paraphrased | 8 |
+| Answerable, using the course's terms | 31 |
+| Answerable, paraphrased | 7 |
 | Not covered: near-misses that sound like course topics (label smoothing, PPO's clipped objective, VQ-VAE, Stable Diffusion, MoE, FID, L1/L2, DPO, GRPO) | 9 |
 | Not covered: a trap ("Everest" appears in toy demo data, but no boiling point) | 1 |
 | Not covered: off-topic | 2 |
@@ -192,10 +192,11 @@ Those checks caught mistakes in our own drafts. After the audit we also replaced
 |---|---|---|---|---|---|
 | **Correct, checked by hand** | **97%** | 92% | 61% | — | — |
 | Correct, strict reading (borderline = wrong) | 92% | 87% | 61% | — | — |
-| Correct, main metric (v2 + key facts) | 95% | 79% | 47% | 24% | 0% |
+| Correct, main metric (v2 + key facts) | 97% | 84% | 50% | 24% | 0% |
+| …before the question review | 95% | 79% | 47% | 24% | 0% |
 | Correct, judge v2 alone | 100% | 84% | 58% | 55% | 13% |
 | Correct, judge v1 alone | 82% | 71% | 45% | 16% | 0% |
-| Key facts present | 88% | 86% | 62% | 30% | 0% |
+| Key facts present | 89% | 89% | 62% | 29% | 0% |
 | Covered questions wrongly refused | 0% | 5% | 3% | 8% | 50% |
 | Not covered → declined (12) | **100%** | 92% | 33% | 67% | 50% |
 | Near-miss or trap → declined (10) | **100%** | 90% | 20% | 60% | 60% |
@@ -213,11 +214,40 @@ Hand-corrected scores with 95% Wilson intervals, and paired tests against the ma
 
 **What the results show:**
 - **The course materials make the assistant both more correct and more honest.** This is the one difference the test set is large enough to establish. The model *without* the materials confidently answers 8 of the 10 near-miss and trap questions (PPO, DPO, FID, …), so a student would wrongly believe those topics were taught. It also refuses one of the five questions only the course can answer (the MIT/Stanford productivity study, q01), and gets course-specific facts wrong (Conda instead of `uv`; invented evaluation "tiers").
-- **The automatic metric under-counts every system,** by 1 question (main) to 5 (dense, no course). Most misses are key-fact lists too strict for a correct paraphrase. The ranking of systems is the same either way.
+- **The automatic metric and the hand check now agree for the main system** (37/38). For the others the automatic metric under-counts by up to 4 questions (dense 3, no course 4), mostly key-fact lists too strict for a correct paraphrase. The ranking of systems is the same either way.
 - **Hybrid vs dense is not resolved by this test set.** Hybrid wins 4 questions and loses 1 (p = 0.38). Hybrid is the default because it never wrongly refused, but it was chosen on these questions, so its numbers are slightly optimistic. Dense is the unselected baseline.
 - **The LLM relevance check did nothing measurable.** In every run with the similarity floor on (the default) it accepted at least one passage for every question; it never declined. (With the floor turned off it did decline one off-topic question, Wimbledon.) All 12 abstentions came from the similarity floor (the 2 off-topic questions) and the answer prompt (the 10 others). With the check turned off, the results were the same within one question each way: one answer got better, one worse. It costs one LLM call per question (14 vs 10 s per answer).
 - **Retrieval is not the bottleneck here.** Both retrievers put the right lecture (or lab) in the top 3 passages for all 38 covered questions, so the remaining errors come from generation.
 - **flan-t5 is too small for this task.** RAG lifts it from 0% to 24%, but it writes a few words and almost never cites. Its runs were not hand-checked.
+
+### Question review (after the results)
+
+After the evaluation, an AI-assisted review (Claude, separate session) checked all 50 questions against the course text. The full review is in [`eval/QUESTION_REVIEW.md`](../eval/QUESTION_REVIEW.md).
+- **Not-covered questions:** all 12 labels were confirmed. GRPO's advantage idea is partly touched by the RL practical, and PPO is named but not explained; both are still fair near-misses.
+- **Grading:** it found six grading problems, which we fixed:
+  - q29's key facts rejected the GPT practical's own sentence about top-k sampling
+  - q20's key facts left out the core idea (change of variables)
+  - q07's were too strict
+  - q08's were too loose
+  - q13's gold lectures missed Lecture 6
+  - q32 was labelled a paraphrase but uses the course term
+- **Matcher:** it also found that the key-fact matcher matched word beginnings, so "wer" matched "were" and "uv" matched "uvicorn". Phrases now match as whole words unless marked as stems.
+
+The answers were **re-scored, not re-run**; the originals are archived in `eval/archive/before_question_review/`. Because we made these corrections after seeing the results, the table shows both versions:
+
+| Automatic main metric | Before the review | After |
+|---|---|---|
+| Llama + course, hybrid (main) | 95% | 97% |
+| Llama + course, dense | 79% | 84% |
+| Llama, no course | 47% | 50% |
+| Llama, no course, sees the syllabus (lenient) | 29% | 26% |
+
+**What didn't change:**
+- the hand-checked and strict scores, which already judged these answers by reading them
+- every significance test
+- the system ranking
+
+We kept q29 *borderline* in the strict reading: the key-fact fix corrects the automatic metric, not our judgement that the answer never says "only the k most likely tokens".
 
 ### Ablations: which parts of the pipeline matter?
 
@@ -303,7 +333,7 @@ So concept is the better variant, chosen on development data only. Both were the
 
 - **Small test set:** 38 + 12 questions, so one question moves a score by 2.6 / 8 points, and only large differences (course vs no course) are statistically clear.
 - **The grader is the same 8B model as the answerer.** It is noisy, hence the combined metric and the hand check. A stronger, independent grader (Gemini or GPT; both are supported by the code) would make the numbers more trustworthy.
-- **The main metric and the hand check were designed after seeing results,** and the hand labels were made by the developers, not blind. Two borderline labels move the headline from 92% to 97%; both readings are reported.
+- **The main metric, the hand check and the question review's corrections all came after seeing results,** and the hand labels were made by the developers, not blind. Two borderline labels move the headline from 92% to 97%; both readings are reported.
 - **Hybrid retrieval was selected on the evaluation set.**
 - **The paraphrased evaluation questions were easier** than the development ones.
 - **The questions and reference answers were drafted with AI assistance** and checked automatically against the course text, but not yet reviewed by a second person. Alfonso reviewing `eval/QUESTIONS.md` is the next step.

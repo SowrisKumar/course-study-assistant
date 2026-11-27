@@ -175,8 +175,8 @@ First observations with Llama 3.1 8B (7 examples in notebook 04; measured proper
 
 | Type | n | Purpose |
 |---|---|---|
-| Answerable, uses the course's term | 30 | Spread over Lectures 1–11 and the add-on labs |
-| Answerable, paraphrased | 8 | The student doesn't know the term (Step 2 showed this is where retrieval struggles) |
+| Answerable, uses the course's term | 30 (31 after the question review relabelled q32) | Spread over Lectures 1–11 and the add-on labs |
+| Answerable, paraphrased | 8 (7 after the review) | The student doesn't know the term (Step 2 showed this is where retrieval struggles) |
 | Not covered, near-miss | 9 | Sounds like course content but isn't in it: vanishing gradients (replaced by label smoothing after the audit), PPO (now: its clipped objective), VQ-VAE, Stable Diffusion, MoE, FID, L1/L2, DPO, GRPO |
 | Not covered, trap | 1 | Everest's boiling point: "Everest" appears in toy demo data, but the answer doesn't |
 | Not covered, off-topic | 2 | Sourdough, Wimbledon |
@@ -353,3 +353,19 @@ It found, and we fixed:
   - The evaluation CLI requires `--out` when answering, and an explicit `--verify` value.
   - The CLI no longer prints library warnings and progress bars.
   - Wording and stale counts fixed; the README reordered, with its requirements spelled out.
+
+## Question review (after the results)
+
+An AI-assisted review of all 50 questions against the course text (`eval/QUESTION_REVIEW.md`) confirmed every not-covered label and found six grading problems, which we fixed:
+- q29 and q20 key facts that rejected correct, course-worded answers
+- q07 too strict, q08 too loose
+- q13 missing Lecture 6 as a gold lecture
+- q32 mislabelled as a paraphrase
+
+It also found that the key-fact matcher matched word beginnings ("wer" ~ "were"). Phrases now match as whole words unless marked as stems (`*`).
+
+- **The saved answers were re-scored, not re-run** (`evaluation --rescore`). The originals are archived in `eval/archive/before_question_review/`, and the experiment log has a third build, "after question review (re-scored)".
+- **Automatic main metric:** hybrid 95% → 97%, dense 79% → 84%, no course 47% → 50%, lenient syllabus 29% → 26%.
+- **Unchanged:** the hand-checked and strict scores, every significance test, and the ranking. q29 stays borderline in the strict reading.
+- **Both versions are reported,** because these corrections came after we had seen the results.
+

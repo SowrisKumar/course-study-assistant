@@ -151,6 +151,7 @@ eval/                            questions with verified answers; results, hand 
                                  experiment_log.csv (every build and model ever evaluated)
 scripts/run_evaluation.sh        reproduces every evaluation number
 tests/                           tests
-docs/                            proposal, design log
+docs/                            proposal, design log, report
+eval/QUESTION_REVIEW.md          review of the 50 questions against the course text
 Dockerfile, docker-compose.yml   the API in a container
 ```
