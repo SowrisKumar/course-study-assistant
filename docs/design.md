@@ -307,7 +307,7 @@ The audit also listed cheaper ideas to make the results more convincing. We did 
 - **More ablations:** similarity floor off (no change in results: of the two off-topic questions, the answer prompt caught one and the relevance check the other), 3 vs 8 passages (less context costs accuracy, more costs time). Nothing beats the default significantly.
 - **Real sessions in the report** (`docs/examples.md`), the workflow as an image (`docs/figures/make_workflow.py`) so it survives PDF export, the embedding model pinned to a fixed Hugging Face revision, and the query embedded once per search instead of twice.
 
-Still open, and needing people or keys: an independent grader (Gemini key), a second human grader with an agreement score, and Alfonso reviewing the question set.
+Still open, and needing people or keys: an independent grader (Gemini key), a second human grader with an agreement score, and Sowris Kumar Sripathy reviewing the flagged questions.
 
 ## Second review
 
