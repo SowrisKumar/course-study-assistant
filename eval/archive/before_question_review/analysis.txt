@@ -1,0 +1,50 @@
+Results: eval/results
+
+Answerable questions correct (auto = main metric; hand = after re-reading, eval/hand_labels.json;
+strict = hand, but borderline answers counted as not correct), and not-covered questions abstained.
+95% Wilson intervals in brackets.
+
+| configuration | correct (auto) | correct (hand) | correct (strict) | not covered → abstained | all 50 handled (hand) |
+|---|---|---|---|---|---|
+| Llama + course, hybrid (main) | 36/38 = 95% [83%–99%] | 37/38 = 97% [87%–100%] | 35/38 = 92% [79%–97%] | 12/12 = 100% [76%–100%] | 49/50 = 98% [90%–100%] |
+| Llama + course, dense | 30/38 = 79% [64%–89%] | 35/38 = 92% [79%–97%] | 33/38 = 87% [73%–94%] | 11/12 = 92% [65%–99%] | 46/50 = 92% [81%–97%] |
+| relevance check off | 37/38 = 97% [87%–100%] | 37/38 = 97% [87%–100%] | 36/38 = 95% [83%–99%] | 12/12 = 100% [76%–100%] | 49/50 = 98% [90%–100%] |
+| support check: strict | 35/38 = 92% [79%–97%] | 36/38 = 95% [83%–99%] | 35/38 = 92% [79%–97%] | 12/12 = 100% [76%–100%] | 48/50 = 96% [87%–99%] |
+| support check: concept | 36/38 = 95% [83%–99%] | 37/38 = 97% [87%–100%] | 35/38 = 92% [79%–97%] | 12/12 = 100% [76%–100%] | 49/50 = 98% [90%–100%] |
+| similarity floor off | 36/38 = 95% [83%–99%] | 37/38 = 97% [87%–100%] | 35/38 = 92% [79%–97%] | 12/12 = 100% [76%–100%] | 49/50 = 98% [90%–100%] |
+| less context (3 passages) | 32/38 = 84% [70%–93%] | 35/38 = 92% [79%–97%] | 33/38 = 87% [73%–94%] | 12/12 = 100% [76%–100%] | 47/50 = 94% [84%–98%] |
+| more context (8 passages) | 33/38 = 87% [73%–94%] | 37/38 = 97% [87%–100%] | 35/38 = 92% [79%–97%] | 11/12 = 92% [65%–99%] | 48/50 = 96% [87%–99%] |
+| Llama, no course | 18/38 = 47% [32%–63%] | 23/38 = 61% [45%–74%] | 23/38 = 61% [45%–74%] | 4/12 = 33% [14%–61%] | 27/50 = 54% [40%–67%] |
+| Llama, no course, sees the syllabus | 3/38 = 8% [3%–21%] | 4/38 = 11% [4%–24%] | 3/38 = 8% [3%–21%] | 12/12 = 100% [76%–100%] | 16/50 = 32% [21%–46%] |
+| …syllabus, lenient wording | 11/38 = 29% [17%–45%] | 16/38 = 42% [28%–58%] | 15/38 = 39% [26%–55%] | 10/12 = 83% [55%–95%] | 26/50 = 52% [39%–65%] |
+| flan-t5 + course | 9/38 = 24% [13%–39%] | not re-checked | — | 8/12 = 67% [39%–86%] | — |
+| flan-t5, no course | 0/38 = 0% [0%–9%] | not re-checked | — | 6/12 = 50% [25%–75%] | — |
+
+Paired comparisons with the main system (exact McNemar test, hand labels; all 50 questions:
+an answerable question counts if answered correctly, a not-covered one if the system abstained).
+
+| main vs | main right, other wrong | main wrong, other right | p | strict reading: wins / losses, p |
+|---|---|---|---|---|
+| Llama, no course | 23 | 1 | 2.98e-06 | 22 / 2, p = 3.59e-05 |
+| Llama + course, dense | 4 | 1 | 0.375 | 4 / 1, p = 0.375 |
+| relevance check off | 1 | 1 | 1 | 1 / 2, p = 1 |
+| support check: strict | 1 | 0 | 1 | 0 / 0, p = 1 |
+| support check: concept | 0 | 0 | 1 | 0 / 0, p = 1 |
+| similarity floor off | 0 | 0 | 1 | 0 / 0, p = 1 |
+| less context (3 passages) | 2 | 0 | 0.5 | 2 / 0, p = 0.5 |
+| more context (8 passages) | 1 | 0 | 1 | 1 / 0, p = 1 |
+| Llama, no course, sees the syllabus | 33 | 0 | 2.33e-10 | 32 / 0, p = 4.66e-10 |
+| …syllabus, lenient wording | 23 | 0 | 2.38e-07 | 22 / 0, p = 4.77e-07 |
+
+Course-specific vs general-knowledge questions (hand labels). Does the course help beyond course trivia?
+
+| configuration | general knowledge (33) | course-specific (5) | course-specific, audit's list (6) |
+|---|---|---|---|
+| Llama + course, hybrid (main) | 32/33 = 97% [85%–99%] | 5/5 = 100% [57%–100%] | 6/6 = 100% [61%–100%] |
+| Llama + course, dense | 30/33 = 91% [76%–97%] | 5/5 = 100% [57%–100%] | 6/6 = 100% [61%–100%] |
+| Llama, no course | 23/33 = 70% [53%–83%] | 0/5 = 0% [0%–43%] | 1/6 = 17% [3%–56%] |
+| Llama, no course, sees the syllabus | 3/33 = 9% [3%–24%] | 1/5 = 20% [4%–62%] | 2/6 = 33% [10%–70%] |
+| …syllabus, lenient wording | 15/33 = 45% [30%–62%] | 1/5 = 20% [4%–62%] | 2/6 = 33% [10%–70%] |
+
+General-knowledge questions only, main vs no course: main wins 10, loses 1, exact McNemar p = 0.0117
+Same, strict reading: main wins 9, loses 2, exact McNemar p = 0.0654

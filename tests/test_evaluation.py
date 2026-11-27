@@ -32,7 +32,7 @@ def test_question_set_shape():
     qs = load_questions()
     assert len(qs) == 50 and len({q["id"] for q in qs}) == 50
     types = [q["type"] for q in qs]
-    assert types.count("out_of_scope") == 12 and types.count("paraphrase") == 8
+    assert types.count("out_of_scope") == 12 and types.count("paraphrase") == 7  # q32 relabelled keyword (review)
     for q in qs:
         if q["type"] != "out_of_scope":
             assert q["gold_lectures"] or q["gold_files"], q["id"]
@@ -138,11 +138,25 @@ def test_judge_v2_shows_course_excerpts_to_the_judge():
     assert "Course material excerpts" in seen[0] and "noise variance" in seen[0]
 
 
-def test_key_facts_match_at_word_start():
+def test_key_facts_match_whole_words_unless_marked_as_stems():
     assert key_fact_recall("The answer is low.", [["wer"]]) == 0.0           # not inside "answer"
+    assert key_fact_recall("The results were good.", [["wer"]]) == 0.0      # whole word: not "were"
+    assert key_fact_recall("Run it with uvicorn.", [["uv"]]) == 0.0          # not "uvicorn"
+    assert key_fact_recall("More information.", [["inf"]]) == 0.0            # not "information"
+    assert key_fact_recall("Set them to -inf.", [["-inf"]]) == 1.0
     assert key_fact_recall("It is nonlinear.", [["linear"]]) == 0.0           # not inside "nonlinear"
-    assert key_fact_recall("Uses normalization.", [["normaliz"]]) == 1.0      # stems still match
+    assert key_fact_recall("Uses normalization.", [["normaliz*"]]) == 1.0     # stems match word beginnings
+    assert key_fact_recall("Uses normalization.", [["normaliz"]]) == 0.0      # ... only when marked
+    assert key_fact_recall("Two gradient norms.", [["norm"]]) == 1.0          # common endings allowed
+    assert key_fact_recall("A normal distribution.", [["norm"]]) == 0.0
     assert key_fact_recall("Measured with WER.", [["wer"]]) == 1.0
+
+
+def test_stem_markers_are_well_formed():
+    """A '*' (stem marker) may only appear once, at the end of a phrase."""
+    for q in load_questions():
+        for fact in q.get("key_facts") or []:
+            assert all(alt.count("*") <= 1 and (not "*" in alt or alt.endswith("*")) for alt in fact), (q["id"], fact)
 
 
 def test_key_facts_do_not_just_repeat_the_question():

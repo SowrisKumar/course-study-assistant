@@ -2,8 +2,8 @@
 
 Generated from [`questions.jsonl`](questions.jsonl) by `make_questions_md.py`. The JSONL file is what the evaluation reads. 50 questions, none reused from development:
 
-- **30** answerable, using the course's own terms
-- **8** answerable but **paraphrased**: they describe the idea without its name
+- **31** answerable, using the course's own terms
+- **7** answerable but **paraphrased**: they describe the idea without its name
 - **12 not covered**:
   - 9 near-misses that sound like course topics
   - 1 trap
@@ -27,7 +27,7 @@ Each reference answer was written from the source listed. Tests check two things
 | q10 | uses course term | What do squeeze and unsqueeze do to a tensor? | Lecture 4<br><sub>Module 4 slide 8</sub> | squeeze removes dimensions of size 1; unsqueeze adds a new dimension at a specified position. |
 | q11 | uses course term | What is the difference between view and reshape in PyTorch? | Lecture 4<br><sub>Module 4 slide 9</sub> | Both change the shape keeping the number of elements. view never copies data; reshape also works when memory is not contiguous, and might copy data. |
 | q12 | uses course term | Which loss functions are typically used for regression and for classification? | Lecture 4<br><sub>Module 4 slide 11</sub> | Mean Squared Error for regression; cross-entropy loss for classification. |
-| q13 | paraphrased | Why does a CNN use the same small set of weights at every position of an image? | Lecture 4<br><sub>Module 4 slide 19</sub> | The convolution kernel slides across the input and its weights are shared, so the same local pattern (edge, texture, shape) is detected anywhere while preserving spatial structure. |
+| q13 | paraphrased | Why does a CNN use the same small set of weights at every position of an image? | Lecture 4, Lecture 6<br><sub>Module 4 slide 19</sub> | The convolution kernel slides across the input and its weights are shared, so the same local pattern (edge, texture, shape) is detected anywhere while preserving spatial structure. |
 | q14 | uses course term | How is an autoencoder related to PCA? | Lecture 5<br><sub>Module 5 slide 7</sub> | Both find a lower-dimensional representation, but PCA is linear (a matrix multiplication) while an autoencoder uses neural networks to learn a nonlinear mapping to and from the latent space. |
 | q15 | paraphrased | When a decoder has to turn a small latent vector back into a full-size image, what kind of layer grows the image? | Lecture 5<br><sub>Module 5 slide 10</sub> | Convolutional transpose (transposed convolution) layers, after a fully connected layer; they work like convolutions in the opposite direction. |
 | q16 | paraphrased | Why do generative models assume real images live on a lower-dimensional surface instead of filling the whole pixel space? | Lecture 5<br><sub>Module 5 slides 4-5</sub> | Real data lies near a lower-dimensional manifold capturing its meaningful variations; generative models (autoencoders, VAEs, GANs) learn this latent space representation. |
@@ -46,7 +46,7 @@ Each reference answer was written from the source listed. Tests check two things
 | q29 | uses course term | In the GPT practical, how does top-k sampling change text generation? | Lecture 9<br><sub>Module 8 Practical GPT, '11. Generating text' (Lecture 9)</sub> | Logits are divided by the temperature; with top-k, all tokens outside the k most likely get -inf, so the next token is sampled only from the k most likely. |
 | q30 | paraphrased | Can the moves an RL agent chooses from be smooth amounts rather than a fixed list of options? | Lecture 10<br><sub>Module 10 slide 5</sub> | Yes: action spaces can be discrete (left, right, up, down) or continuous (e.g. steering wheel rotation and acceleration of a self-driving car). |
 | q31 | uses course term | Why is the reward multiplied by gamma to the power t in an infinite-horizon return? | Lecture 10<br><sub>Module 10 slide 9</sub> | The exponentially decreasing discount factor makes the infinite sum converge; intuitively a reward loses value the longer you have to wait for it. |
-| q32 | paraphrased | Why is Q-learning useful when the agent doesn't have a map of its environment? | Lecture 10<br><sub>Module 9 Practical RL section 7 (Lecture 10)</sub> | With the Q-function the best action is simply argmax_a Q(s, a), so no model of the environment is needed. |
+| q32 | uses course term | Why is Q-learning useful when the agent doesn't have a map of its environment? | Lecture 10<br><sub>Module 9 Practical RL section 7 (Lecture 10)</sub> | With the Q-function the best action is simply argmax_a Q(s, a), so no model of the environment is needed. |
 | q33 | uses course term | What is supervised fine-tuning (SFT) of an LLM? | Lecture 11<br><sub>Module 11 slide 4</sub> | Collect task-oriented prompts with human-written ideal responses and fine-tune the base model on them with supervised learning, so it learns to follow instructions and align with human expectations. |
 | q34 | uses course term | In the course's word-chain toy example, how does the model learn the new behavior without labeled data? | Lecture 11<br><sub>Module 11 slides 10-12</sub> | By reinforcement learning: the base model generates many completions, each gets a reward from rules we define (e.g. chain rule, final word ends in 'm'), and training makes rewarded actions more likely, so no labeled data is needed. |
 | q35 | uses course term | What are the four tiers of the LLM evaluation harness from the evals lab? | `llm_evals.ipynb`<br><sub>llm_evals.ipynb section 1</sub> | 1) rules (length, keywords, format), 2) ROUGE/BERTScore against a reference, 3) sentence-embedding similarity, 4) LLM-as-judge; cheapest and most reliable first. |

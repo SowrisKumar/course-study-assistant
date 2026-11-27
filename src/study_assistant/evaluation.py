@@ -131,9 +131,36 @@ def key_fact_recall(answer: str, key_facts: list[list[str]]) -> float | None:
 
 
 def fact_present(phrase: str, text: str) -> bool:
-    """Phrase found at the START of a word (stems like "normaliz" still match "normalization"),
-    so "wer" no longer matches inside "answer" and "linear" not inside "nonlinear"."""
-    return re.search(r"(?<![a-z0-9])" + re.escape(phrase.lower()), text.lower()) is not None
+    """Is the key-fact phrase in the text, as a word?
+
+    By default the phrase must be a whole word (or words), allowing common endings
+    (-s, -es, -ed, -d, -ing): "wer" matches "WER" but not "were", "uv" not "uvicorn", "inf" not
+    "information". A phrase ending in "*" is a stem and matches any word that starts with it:
+    "retriev*" matches "retrieval" and "retrieved". Never inside a word: "linear" doesn't match
+    "nonlinear". (The question review, eval/QUESTION_REVIEW.md, found the earlier start-of-word-only
+    rule produced false matches.)"""
+    stem = phrase.endswith("*")
+    pattern = r"(?<![a-z0-9])" + re.escape(phrase.rstrip("*").lower())
+    if not stem:
+        pattern += r"(?:s|es|ed|d|ing)?(?![a-z0-9])"
+    return re.search(pattern, text.lower()) is not None
+
+
+def rescore(out_dir: Path = RESULTS_DIR, questions_path: Path | None = None, log=print) -> None:
+    """Recompute everything that depends only on the question file (type, key-fact recall, citation
+    scores) for saved runs, without asking any model again. Judge scores are kept: they depend on the
+    reference answers and course excerpts, which a key-fact or label change doesn't touch."""
+    questions = {q["id"]: q for q in load_questions(questions_path or QUESTIONS_PATH)}
+    for path in sorted(out_dir.glob("*.jsonl")):
+        recs = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        for rec in recs:
+            q = questions[rec["id"]]
+            rec["type"] = q["type"]
+            if q["type"] != "out_of_scope" and not rec["abstained"]:
+                rec["key_fact_recall"] = key_fact_recall(rec["answer"], q["key_facts"])
+                rec["cites_gold"], rec["citation_precision"] = citation_scores(rec.get("sources", []), q)
+        path.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in recs), encoding="utf-8")
+        log(f"re-scored {path.name}")
 
 
 def _source_file(doc_id: str) -> str:
@@ -375,17 +402,22 @@ def main() -> None:
     p.add_argument("--judge", default="ollama", help="backend for LLM-as-judge ('none' to skip)")
     p.add_argument("--limit", type=int, help="only the first N questions (smoke test)")
     p.add_argument("--out", type=Path, help="results folder; required when answering questions, so a run never "
-                   "mixes into eval/results/ (the reported run). --report / --rejudge default to eval/results/")
+                   "mixes into eval/results/ (the reported run). --report / --rejudge / --rescore default to eval/results/")
     p.add_argument("--report", action="store_true", help="only print the summary of saved runs")
     p.add_argument("--rejudge", action="store_true", help="add judge-v2 scores (with course excerpts) to saved runs")
+    p.add_argument("--rescore", action="store_true",
+                   help="recompute key-fact recall and citation scores of saved runs from the current questions "
+                        "(no model calls)")
     args = p.parse_args()
     if args.out is None:
-        if not (args.report or args.rejudge):
+        if not (args.report or args.rejudge or args.rescore):
             p.error("pass --out <folder> (e.g. --out eval/runs/my-run): saved answers in an existing folder are "
                     "reused, and eval/results/ holds the run reported in docs/report.md")
         args.out = RESULTS_DIR
 
-    if args.rejudge:
+    if args.rescore:
+        rescore(args.out)
+    elif args.rejudge:
         rejudge_v2(get_llm(args.judge), args.out)
     elif not args.report:
         from .assistant import DEFAULT_RETRIEVER, StudyAssistant
