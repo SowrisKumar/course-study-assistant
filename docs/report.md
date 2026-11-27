@@ -104,7 +104,7 @@ A student who doesn't know the term needs meaning-based retrieval.
 - Ollama / Llama 3.1 8B (local, used for all results)
 - flan-t5 (the class model, as a weak baseline)
 
-All run at temperature 0, which we verified gives reproducible answers. Rate limits are retried with backoff.
+All run at temperature 0 with a fixed seed. Re-runs reproduced the evaluation answers we checked byte for byte, but this isn't guaranteed: some long free-form answers (e.g. a "simplify" explanation in notebook 04) came out worded differently on a re-run. Rate limits are retried with backoff.
 
 **The workflow** (`assistant.py`, LangGraph):
 
@@ -307,7 +307,7 @@ So concept is the better variant, chosen on development data only. Both were the
 - **Hybrid retrieval was selected on the evaluation set.**
 - **The paraphrased evaluation questions were easier** than the development ones.
 - **The questions and reference answers were drafted with AI assistance** and checked automatically against the course text, but not yet reviewed by a second person. Alfonso reviewing `eval/QUESTIONS.md` is the next step.
-- **Off-topic questions that match an example prompt inside the course can slip through.** "What is the capital of France?" is an example prompt on a slide of the extended Lecture 11 deck, so it scores 0.43 (above the floor), the relevance check accepts that slide, and the assistant answers about the slide instead of declining. The evaluation's off-topic questions (sourdough, Wimbledon, Everest) don't do this, but a demo can.
+- **Off-topic questions that match an example prompt inside the course can slip through.** "What is the capital of France?" is an example prompt on a slide of the extended Lecture 11 deck, so it scores 0.43 (above the floor), the relevance check accepts that slide, and the assistant answers about the slide instead of declining. The evaluation's off-topic questions (sourdough, Wimbledon, and the Everest trap) don't do this, but a demo can.
 - **Image-only content (equations, diagrams) is not in the knowledge base.**
 - **Speed:** about 14 s per answer on a laptop with a local 8B model. A cloud model would be faster and likely more accurate, at a cost.
 

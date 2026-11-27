@@ -136,7 +136,7 @@ One interface, `LLM.generate(prompt, system=None, max_tokens, temperature=0) -> 
 Model names change often, so defaults can be overridden in `.env` (`OPENAI_MODEL`, ...).
 
 Choices:
-- **temperature = 0** everywhere, so evaluation runs are reproducible (verified: re-running notebook 03 gives identical answers).
+- **temperature = 0** (and a fixed seed for Ollama) everywhere, so evaluation runs are as reproducible as the backend allows. Re-running notebook 03, and a 2-question evaluation, gave identical answers. Some long free-form answers can still vary slightly between runs (seen once in notebook 04's "simplify" cell), so exact wording is not guaranteed.
 - **Retries with exponential backoff** on rate limits and overloads. Gemini's free tier is limited per minute, so it waits 10 / 20 / 40 / 80 s; the others wait 2 / 4 / 8 / 16 s.
 - **OpenAI reasoning models reject `temperature`**: if the API says so, we drop it and remember that for later calls.
 - **flan-t5 reads at most 512 tokens**: we keep the *end* of long prompts, where the question is.
