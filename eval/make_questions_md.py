@@ -39,7 +39,7 @@ lines = [
     "| id | type | question | where it's taught | reference answer |", "|---|---|---|---|---|",
 ]
 for q in qs:
-    where = ", ".join([f"Lecture {lec}" for lec in q["gold_lectures"]] + [f"`{f}`" for f in q["gold_files"][:1]]) or "—"
+    where = ", ".join([f"Lecture {lec}" for lec in q["gold_lectures"]] + [f"`{f}`" for f in q["gold_files"][:1]]) or "n/a"
     lines.append(f"| {q['id']} | {label[q['type']]} | {cell(q['question'])} | {where}<br><sub>{cell(q['source'])}</sub> "
                  f"| {cell(q['reference'])} |")
 (HERE / "QUESTIONS.md").write_text("\n".join(lines) + "\n")

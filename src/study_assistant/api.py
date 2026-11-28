@@ -73,7 +73,7 @@ class Reply(BaseModel):
 def _reply(r: AssistantResult, latency: float, with_trace: bool) -> Reply:
     return Reply(question=r.question, mode=r.mode, answer=r.answer, abstained=r.abstained,
                  abstain_reason=r.abstain_reason, uncited=r.uncited, latency_s=round(latency, 2),
-                 sources=[Source(number=p.number, label=p.label, lecture=p.lecture, doc_id=p.doc_id) for p in r.sources],
+                 sources=[Source(number=p.number, label=p.shown_label, lecture=p.lecture, doc_id=p.doc_id) for p in r.sources],
                  trace=r.trace if with_trace else None)
 
 

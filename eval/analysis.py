@@ -110,7 +110,7 @@ def outcomes(run: str, results: Path = RESULTS) -> dict | None:
 
 def pct(k: int, n: int) -> str:
     if n == 0:
-        return "—"
+        return "n/a"
     lo, hi = wilson(k, n)
     return f"{k}/{n} = {k / n:.0%} [{lo:.0%}–{hi:.0%}]"
 
@@ -131,8 +131,8 @@ def main(argv: list[str] | None = None) -> None:
         a, h, st, ab = o["auto"], o["hand"], o["strict"], o["abstain"]
         checked = run in HAND
         hand_cell = pct(sum(h.values()), len(h)) if checked else "not re-checked"
-        strict_cell = pct(sum(st.values()), len(st)) if checked else "—"
-        all_cell = pct(sum(h.values()) + sum(ab.values()), len(h) + len(ab)) if checked else "—"
+        strict_cell = pct(sum(st.values()), len(st)) if checked else "n/a"
+        all_cell = pct(sum(h.values()) + sum(ab.values()), len(h) + len(ab)) if checked else "n/a"
         print(f"| {LABELS[run]} | {pct(sum(a.values()), len(a))} | {hand_cell} | {strict_cell} "
               f"| {pct(sum(ab.values()), len(ab))} | {all_cell} |")
     stale = {LABELS[r]: o["stale"] for r, o in data.items() if o["stale"]}

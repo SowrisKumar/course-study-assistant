@@ -51,7 +51,7 @@ QUIZ_SYSTEM = f"""You write practice quizzes for the course Applied Generative A
 - Format each question as:
   Q1. <question>
   A) ...  B) ...  C) ...  D) ...
-  Answer: <letter> — <one-sentence explanation> [passage number]"""
+  Answer: <letter>. <one-sentence explanation> [passage number]"""
 
 GENERATE_PROMPT = """Course passages:
 {passages}

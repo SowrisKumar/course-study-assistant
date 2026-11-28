@@ -80,6 +80,12 @@ class Passage:
         where = f"Lecture {self.lecture}" if self.lecture is not None else "Add-on lab"
         return f"{where} · {self.citation}"
 
+    @property
+    def shown_label(self) -> str:
+        """The label as printed for people. Some course titles contain dashes ("Module 8 \u2014 Practical"); these
+        are shown as plain hyphens. The prompt keeps the exact title (`label`), so saved runs stay reproducible."""
+        return self.label.replace(" \u2014 ", " - ").replace("\u2014", "-")
+
 
 @dataclass
 class AssistantResult:
@@ -96,7 +102,7 @@ class AssistantResult:
     def format(self) -> str:
         out = self.answer
         if self.sources:
-            out += "\n\nSources:\n" + "\n".join(f"[{p.number}] {p.label}" for p in self.sources)
+            out += "\n\nSources:\n" + "\n".join(f"[{p.number}] {p.shown_label}" for p in self.sources)
         if self.uncited:
             out += "\n\n(Note: this answer did not cite the course materials; treat it with caution.)"
         return out
@@ -235,7 +241,7 @@ class StudyAssistant:
         hits = self.retriever.search(state["search_query"], k=self.k)
         passages = group_into_passages(hits, self.max_passages)
         lines = [f"retrieve ({self.retriever.name}): {len(hits)} chunks -> {len(passages)} passages"]
-        lines += [f"  [{p.number}] {p.score:.2f} {p.label}" for p in passages]
+        lines += [f"  [{p.number}] {p.score:.2f} {p.shown_label}" for p in passages]
         return {"passages": passages, "trace": lines}
 
     def _check(self, state: State) -> State:

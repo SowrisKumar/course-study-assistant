@@ -102,3 +102,11 @@ def test_bad_verify_setting_fails_at_startup(monkeypatch):
     monkeypatch.setenv("VERIFY", "maybe")
     with pytest.raises(ValueError, match="VERIFY"):
         create_app()
+
+
+def test_course_title_dashes_are_shown_as_hyphens():
+    from study_assistant.assistant import Passage
+    p = Passage(number=1, doc_id="x", citation="Module 8 \u2014 Practical: GPT, cells 1-2", lecture=9,
+                track="lecture", text="", score=0.0)
+    assert p.label == "Lecture 9 · Module 8 \u2014 Practical: GPT, cells 1-2"  # the prompt keeps the course's title
+    assert p.shown_label == "Lecture 9 · Module 8 - Practical: GPT, cells 1-2"
